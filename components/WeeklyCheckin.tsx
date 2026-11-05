@@ -1,0 +1,141 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { X, CalendarCheck, Check, Minus } from "lucide-react";
+import { useSocial } from "@/lib/SocialContext";
+import { ACCOUNTS, KINDS, OWN_CHANNELS, PLATFORMS, Post, Snapshot, TARGETS, addDays, contentByWeek, fmt, shortDate, weekLabel, weekNumber, weekStart } from "@/lib/social";
+import { saveRow, upsertRows } from "@/lib/store";
+import { loadWeekTemplate } from "@/lib/content";
+import AccountIcon from "./AccountIcon";
+import Portal from "./Portal";
+
+type Vals = Record<string, string>;
+const num = (v: string) => (v.trim() === "" ? null : Math.max(0, Math.round(Number(v))));
+
+/** Check-in semanal: seguidores, repaso de lo que quedó sin publicar la semana pasada y la semana tipo en el calendario. */
+export default function WeeklyCheckin() {
+  const { checkinWeek: week, closeCheckin, snapshots, posts, refresh } = useSocial();
+  const [followers, setFollowers] = useState<Vals>({});
+  const [done, setDone] = useState<Record<string, boolean>>({});
+  const [template, setTemplate] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const prev = week ? addDays(week, -7) : "";
+  const inWeek = (p: Post, w: string) => !!p.publish_date && p.publish_date >= w && p.publish_date <= addDays(w, 6) && (p.platform === "tiktok" || p.platform === "linkedin");
+  const prevPosts = posts.filter((p) => inWeek(p, prev)).sort((a, b) => a.publish_date!.localeCompare(b.publish_date!));
+  const thisPosts = week ? posts.filter((p) => inWeek(p, week)) : [];
+  const isCurrent = week === weekStart();
+
+  useEffect(() => {
+    if (!week) return;
+    setFollowers(Object.fromEntries([...ACCOUNTS, ...OWN_CHANNELS].map((a) => {
+      const r = snapshots.find((x) => x.week_start === week && x.account === a.id);
+      return [a.id, r ? String(r.followers) : ""];
+    })));
+    setDone(Object.fromEntries(prevPosts.map((p) => [p.id!, p.status === "publicado"])));
+    setTemplate(true); setError("");
+  }, [week]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (!week) return null;
+
+  const lastKnown = (acc: string) => [...snapshots].filter((s) => s.account === acc && s.week_start < week).sort((a, b) => b.week_start.localeCompare(a.week_start))[0];
+  const prevStats = contentByWeek(prevPosts.map((p) => ({ ...p, status: done[p.id!] ? "publicado" : p.status === "publicado" ? "montado" : p.status })), [prev])[0];
+
+  async function save() {
+    setSaving(true); setError("");
+    try {
+      await upsertRows("social_snapshots", [...ACCOUNTS, ...OWN_CHANNELS].filter((a) => num(followers[a.id] || "") !== null)
+        .map((a) => ({ week_start: week!, account: a.id, followers: num(followers[a.id])! } as Snapshot)));
+      for (const p of prevPosts) {
+        const was = p.status === "publicado", now = !!done[p.id!];
+        if (was !== now) await saveRow<Post>("content_posts", { ...p, status: now ? "publicado" : "montado" });
+      }
+      if (isCurrent && template && thisPosts.length === 0) await loadWeekTemplate(week!, posts);
+      await refresh();
+      closeCheckin();
+    } catch (e: any) {
+      setError(e?.message || "No se ha podido guardar.");
+    }
+    setSaving(false);
+  }
+
+  const row = (a: (typeof ACCOUNTS)[number]) => {
+    const lk = lastKnown(a.id);
+    return (
+      <div key={a.id} className="ci-row">
+        <div className="ci-acc">
+          <AccountIcon account={a} />
+          <div><b>{a.name} · {a.owner}</b><small>{lk ? `La última vez: ${fmt(lk.followers)}` : a.optional ? "Opcional · déjalo vacío si aún no existe" : "Primera vez que lo apuntamos"}</small></div>
+        </div>
+        <input type="number" min={0} inputMode="numeric" placeholder={lk ? String(lk.followers) : "0"} value={followers[a.id] || ""}
+          onChange={(e) => setFollowers({ ...followers, [a.id]: e.target.value })} />
+      </div>
+    );
+  };
+
+  return (
+    <Portal>
+      <div className="dialog-overlay" onClick={() => closeCheckin(true)}>
+        <div className="dialog" onClick={(e) => e.stopPropagation()}>
+          <div className="dialog-head">
+            <div>
+              <span className="chip" style={{ marginBottom: "0.75rem" }}><CalendarCheck style={{ width: 13, height: 13 }} /> Semana {weekNumber(week)} · {weekLabel(week)}</span>
+              <h3 style={{ fontSize: "1.375rem", fontWeight: 800, letterSpacing: "-0.03em" }}>Check-in semanal</h3>
+              <p className="section-sub">Un minuto: cuánto crecemos y si cumplimos la rutina (3 TikToks y 2 posts de LinkedIn).</p>
+            </div>
+            <button className="icon-btn" onClick={() => closeCheckin(true)} aria-label="Cerrar"><X /></button>
+          </div>
+
+          <div className="dialog-body">
+            <div className="ci-step"><span>1</span> ¿Cuántos seguidores tenemos hoy?</div>
+            {ACCOUNTS.map(row)}
+            <div className="ci-mini" style={{ textAlign: "left", margin: "1rem 0 0.5rem" }}>Comunidad propia</div>
+            {OWN_CHANNELS.map(row)}
+
+            <div className="ci-step" style={{ marginTop: "1.5rem" }}><span>2</span> La semana pasada, ¿se publicó todo?</div>
+            {prevPosts.length === 0 ? (
+              <p className="section-sub" style={{ padding: "0.25rem 0 0.5rem" }}>La semana pasada no había nada en el calendario de contenido.</p>
+            ) : (
+              <>
+                <div className="flex gap-2" style={{ marginBottom: "0.75rem", flexWrap: "wrap" }}>
+                  <span className={`chip ${prevStats.tiktok >= TARGETS.tiktok ? "chip-ok" : "chip-bad"}`}>TikTok {prevStats.tiktok}/{TARGETS.tiktok}</span>
+                  <span className={`chip ${prevStats.linkedin >= TARGETS.linkedin ? "chip-ok" : "chip-bad"}`}>LinkedIn {prevStats.linkedin}/{TARGETS.linkedin}</span>
+                </div>
+                {prevPosts.map((p) => (
+                  <div key={p.id} className="ci-row" style={{ gridTemplateColumns: "1fr auto" }}>
+                    <div className="ci-acc">
+                      <span className="acc-ico" style={{ background: PLATFORMS[p.platform].color, width: 30, height: 30, fontSize: 11 }}>{PLATFORMS[p.platform].label.slice(0, 2)}</span>
+                      <div><b style={{ fontSize: "0.8125rem" }}>{p.title}</b><small>{shortDate(p.publish_date!)} · {KINDS[p.kind || ""] || p.kind}</small></div>
+                    </div>
+                    <div className="seg">
+                      <button className={done[p.id!] ? "on" : ""} onClick={() => setDone({ ...done, [p.id!]: true })}><Check style={{ width: 13, height: 13, verticalAlign: -2 }} /> Publicado</button>
+                      <button className={!done[p.id!] ? "on" : ""} onClick={() => setDone({ ...done, [p.id!]: false })}><Minus style={{ width: 13, height: 13, verticalAlign: -2 }} /> No</button>
+                    </div>
+                  </div>
+                ))}
+              </>
+            )}
+
+            <div className="ci-step" style={{ marginTop: "1.5rem" }}><span>3</span> {isCurrent ? "Esta semana" : "Esa semana"}</div>
+            {thisPosts.length > 0 ? (
+              <p className="section-sub">Hay {thisPosts.length} {thisPosts.length === 1 ? "pieza" : "piezas"} en el calendario. <Link href="/contenido" onClick={() => closeCheckin()} style={{ color: "var(--ink)", fontWeight: 600 }}>Ver el calendario →</Link></p>
+            ) : isCurrent ? (
+              <label className="ci-row" style={{ gridTemplateColumns: "auto 1fr", cursor: "pointer", fontWeight: 500 }}>
+                <input type="checkbox" checked={template} onChange={(e) => setTemplate(e.target.checked)} style={{ width: 18, height: 18, appearance: "auto", accentColor: "var(--ink)" }} />
+                <span><b style={{ display: "block", fontSize: "0.875rem" }}>Cargar la semana tipo en el calendario</b><span className="section-sub">Noticia IA, Automatización, Tutorial y Caso real en TikTok; caso del jueves y pregunta del viernes en LinkedIn.</span></span>
+              </label>
+            ) : <p className="section-sub">No hubo nada en el calendario.</p>}
+            {error && <p style={{ color: "var(--bad)", fontSize: "0.8125rem", marginTop: "0.75rem" }}>{error}</p>}
+          </div>
+
+          <div className="dialog-foot">
+            <button className="btn-secondary" onClick={() => closeCheckin(true)}>Recordármelo mañana</button>
+            <button className="btn-primary" onClick={save} disabled={saving}>{saving ? "Guardando…" : "Guardar semana"}</button>
+          </div>
+        </div>
+      </div>
+    </Portal>
+  );
+}
