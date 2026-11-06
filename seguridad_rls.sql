@@ -65,5 +65,19 @@ CREATE POLICY "Web puede enviar mensajes" ON public.contact_messages
   FOR INSERT TO anon
   WITH CHECK (estado = 'sin responder');
 
--- 5. Comprobación: debe salir «Solo equipo» en cada tabla (y la de mensajes web en contact_messages)
+-- 5. Archivos (Supabase Storage, espacio «contenido»): solo el equipo, nada para anon.
+--    (Si el espacio aún no existe, estas políticas no molestan.)
+DROP POLICY IF EXISTS "Aldia contenido acceso" ON storage.objects;
+DROP POLICY IF EXISTS "Aldia contenido ver espacio" ON storage.buckets;
+DROP POLICY IF EXISTS "Aldia contenido solo equipo" ON storage.objects;
+DROP POLICY IF EXISTS "Aldia contenido ver espacio equipo" ON storage.buckets;
+CREATE POLICY "Aldia contenido solo equipo" ON storage.objects
+  FOR ALL TO authenticated
+  USING (bucket_id = 'contenido' AND public.is_team())
+  WITH CHECK (bucket_id = 'contenido' AND public.is_team());
+CREATE POLICY "Aldia contenido ver espacio equipo" ON storage.buckets
+  FOR SELECT TO authenticated
+  USING (id = 'contenido' AND public.is_team());
+
+-- 6. Comprobación: debe salir «Solo equipo» en cada tabla (y la de mensajes web en contact_messages)
 SELECT tablename, policyname, roles, cmd FROM pg_policies WHERE schemaname = 'public' ORDER BY tablename;

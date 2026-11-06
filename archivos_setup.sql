@@ -8,15 +8,4 @@ INSERT INTO storage.buckets (id, name, public, file_size_limit)
 VALUES ('contenido', 'contenido', false, 52428800)
 ON CONFLICT (id) DO UPDATE SET file_size_limit = EXCLUDED.file_size_limit;
 
--- Acceso compartido, igual que el resto de tablas de la app
-DROP POLICY IF EXISTS "Aldia contenido acceso" ON storage.objects;
-CREATE POLICY "Aldia contenido acceso" ON storage.objects
-  FOR ALL TO anon, authenticated
-  USING (bucket_id = 'contenido')
-  WITH CHECK (bucket_id = 'contenido');
-
--- Que la app pueda comprobar que el espacio existe
-DROP POLICY IF EXISTS "Aldia contenido ver espacio" ON storage.buckets;
-CREATE POLICY "Aldia contenido ver espacio" ON storage.buckets
-  FOR SELECT TO anon, authenticated
-  USING (id = 'contenido');
+-- Políticas: las pone seguridad_rls.sql (ejecutarlo siempre al final). Nunca para anon.
