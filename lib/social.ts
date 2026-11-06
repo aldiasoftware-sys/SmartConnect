@@ -150,10 +150,19 @@ export const latestFollowers = (snaps: Snapshot[], acc: string) =>
 
 // ===================== COMUNIDAD =====================
 export type Person = {
-  id?: string; name: string; kind: "lead" | "contacto"; stage: number; origin: string | null; keyword?: string | null;
+  id?: string; name: string; kind: PersonKind; stage: number; origin: string | null; keyword?: string | null;
   email?: string | null; company?: string | null; sector?: string | null; pain?: string | null;
   pending_reply: boolean; pending_since?: string | null; last_contact?: string | null; next_step?: string | null; notes?: string | null; created_at?: string;
 };
+/** Lead → Contacto → Cliente: se puede pasar de uno a otro en los dos sentidos */
+export type PersonKind = "lead" | "contacto" | "cliente";
+export const PERSON_KINDS: { id: PersonKind; label: string; plural: string; desc: string }[] = [
+  { id: "lead", label: "Lead", plural: "Leads", desc: "Ha mostrado interés (comentario, palabra clave, descarga), pero aún no hay relación. Se le nutre." },
+  { id: "contacto", label: "Contacto", plural: "Contactos", desc: "Ya hemos hablado: sabemos quién es, qué hace y qué le duele. Trato de tú a tú y seguimiento." },
+  { id: "cliente", label: "Cliente", plural: "Clientes", desc: "Ya trabaja con nosotros: diagnóstico, proyecto o mantenimiento." },
+];
+export const kindOf = (k?: string | null) => PERSON_KINDS.find((x) => x.id === k) || PERSON_KINDS[0];
+
 /** La escalera para que interactúen con nosotros */
 export const LADDER = [
   { n: 1, label: "Ver", desc: "Un post útil que resuelve una duda concreta" },

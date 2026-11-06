@@ -1260,3 +1260,26 @@ input::placeholder, textarea::placeholder {
 .day-off { margin-top: 0.25rem; padding: 0.75rem; border-radius: 10px; background: #fff; border: 1px dashed var(--border-strong); }
 .day-off b { display: block; font-size: 0.8125rem; font-weight: 700; margin-bottom: 2px; }
 .day-off span { display: block; font-size: 0.75rem; color: var(--text-secondary); line-height: 1.4; }
+
+/* Lead → Contacto → Cliente */
+.kind-move { display: inline-flex; align-items: center; gap: 4px; }
+.kind-move button { width: 24px; height: 24px; border-radius: 7px; border: 1px solid var(--border-color); background: #fff; color: var(--text-secondary); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; transition: var(--transition); }
+.kind-move button:hover:not(:disabled) { border-color: var(--ink); color: var(--ink); }
+.kind-move button:disabled { opacity: 0.3; cursor: default; }
+.kind-move button svg { width: 14px; height: 14px; }
+.kind-chip { min-width: 74px; text-align: center; font-size: 0.75rem; font-weight: 700; padding: 3px 10px; border-radius: 99px; }
+.k-lead { background: var(--bg-surface); color: var(--text-secondary); }
+.k-contacto { background: #e3eefa; color: #0a66c2; }
+.k-cliente { background: var(--ok-soft); color: var(--ok); }
+.kind-track { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 4px; border-radius: 14px; background: var(--bg-surface); }
+.kind-track button { border: none; background: transparent; border-radius: 10px; padding: 0.6rem 0.5rem; font-family: inherit; font-size: 0.875rem; font-weight: 600; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: var(--transition); }
+.kind-track button span { font-size: 0.6875rem; font-weight: 700; color: var(--text-muted); }
+.kind-track button.past { color: var(--ink); }
+.kind-track button.on { background: var(--ink); color: #fff; box-shadow: var(--shadow-sm); }
+.kind-track button.on span { color: #8b8f98; }
+.pick { display: flex; flex-wrap: wrap; gap: 6px; }
+.pick button { border: 1px solid var(--border-color); background: #fff; border-radius: 99px; padding: 0.4rem 0.8rem; font-family: inherit; font-size: 0.8125rem; font-weight: 600; color: var(--text-secondary); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: var(--transition); }
+.pick button b { font-size: 0.6875rem; color: var(--text-muted); }
+.pick button:hover { border-color: var(--border-strong); color: var(--ink); }
+.pick button.on { background: var(--ink); border-color: var(--ink); color: #fff; }
+.pick button.on b { color: #8b8f98; }

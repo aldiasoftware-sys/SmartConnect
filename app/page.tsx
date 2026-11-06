@@ -43,7 +43,7 @@ export default function EstaSemanaPage() {
   const followers = total[total.length - 1] || 0;
   const delta = total.length > 1 ? total[total.length - 1] - total[total.length - 2] : 0;
   const newLeads = people.filter((p) => (p.created_at || "").slice(0, 10) >= w).length;
-  const subscribed = people.filter((p) => p.stage >= 4).length;
+  const contacts = people.filter((p) => p.kind === "contacto").length;
   const openOffers = offers.filter(OPEN_OFFER);
   const diagnostics = offers.filter((o) => ["diagnostico", "propuesta", "negociacion", "ganada"].includes(o.status)).length;
   const topPattern = patterns(offers)[0];
@@ -53,7 +53,7 @@ export default function EstaSemanaPage() {
   const funnel = [
     { n: "01", l: "Atraer", v: snapshots.length ? fmt(followers) : "—", s: snapshots.length ? `seguidores · ${delta >= 0 ? "+" : ""}${fmt(delta)} esta semana` : "haz el check-in de seguidores", href: "/redes" },
     { n: "02", l: "Capturar", v: String(newLeads), s: `leads nuevos esta semana · ${people.filter((p) => p.kind === "lead").length} en total`, href: "/comunidad" },
-    { n: "03", l: "Nutrir", v: String(subscribed), s: "personas suscritas o más arriba en la escalera", href: "/comunidad" },
+    { n: "03", l: "Nutrir", v: String(contacts), s: `contactos con los que ya hablamos · ${people.filter((p) => p.kind === "cliente").length} clientes`, href: "/comunidad" },
     { n: "04", l: "Convertir", v: String(openOffers.length), s: `ofertas abiertas · ${diagnostics}/${DIAGNOSTICS_TO_VALIDATE} diagnósticos`, href: "/ofertas" },
     { n: "05", l: "Operación SaaS", v: topPattern ? `${topPattern.clients}/${SAAS_REPEAT}` : "—", s: topPattern ? `«${topPattern.pattern}» se repite` : "sin patrones todavía", href: "/ofertas" },
   ];
