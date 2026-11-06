@@ -9,6 +9,8 @@ import SalesProvider from "@/lib/SalesContext";
 import SocialProvider, { useSocial } from "@/lib/SocialContext";
 import { AuthProvider } from "@/lib/AuthContext";
 import { weekLabel, weekNumber, weekStart } from "@/lib/social";
+import { sweep } from "@/lib/files";
+import { useEffect } from "react";
 
 function Header() {
   const pathname = usePathname();
@@ -33,6 +35,15 @@ function Header() {
   );
 }
 
+/** Barrido de Archivos al abrir la app: borra lo que ya ha cumplido sus 14 días (una vez por sesión). */
+function SweepFiles() {
+  useEffect(() => {
+    try { if (sessionStorage.getItem("aldia_swept")) return; sessionStorage.setItem("aldia_swept", "1"); } catch { /* sin almacenamiento */ }
+    sweep().catch(() => { /* aún no existe el espacio de archivos */ });
+  }, []);
+  return null;
+}
+
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const pathname = usePathname();
   const isAuthPage = pathname === "/login" || pathname === "/register";
@@ -53,6 +64,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                 <div key={pathname} className={!isAuthPage ? "animate-in" : ""}>{children}</div>
               </main>
               {!isAuthPage && <WeeklyCheckin />}
+              <SweepFiles />
             </SocialProvider>
           </SalesProvider>
         </AuthProvider>

@@ -1,0 +1,82 @@
+import { supabase } from "./supabase";
+import { addDays, today, toISO } from "./social";
+
+// «Drive» de Smart Connect sobre Supabase Storage: Guille | Alejandro / AAAA-MM-DD / archivos.
+// Cada archivo vive 14 días contando el de subida: lo subido el día 1 se borra el día 14.
+export const BUCKET = "contenido";
+export const PEOPLE = ["Guille", "Alejandro"];
+export const KEEP_DAYS = 14;
+
+export type StoredFile = { path: string; name: string; size: number; mime: string; created: string; person: string; date: string };
+
+const store = () => supabase.storage.from(BUCKET);
+
+/** Día (local) en que se sube y día en que se borra. */
+export const uploadedOn = (created: string) => toISO(new Date(created));
+export const deletesOn = (created: string) => addDays(uploadedOn(created), KEEP_DAYS - 1);
+export const isExpired = (created: string) => today() >= deletesOn(created);
+
+async function listDir(prefix: string) {
+  const { data, error } = await store().list(prefix, { limit: 1000, sortBy: { column: "name", order: "asc" } });
+  if (error) throw error;
+  return data || [];
+}
+
+/** ¿Existe el espacio de archivos? (archivos_setup.sql deja leer su ficha; listar uno inexistente da lista vacía, no error) */
+export async function bucketExists() {
+  const { data, error } = await supabase.storage.getBucket(BUCKET);
+  return !error && !!data;
+}
+
+/** Todos los archivos (persona / fecha / archivo). */
+export async function listAll(): Promise<StoredFile[]> {
+  const out: StoredFile[] = [];
+  for (const person of await listDir("")) {
+    if (person.id) continue; // solo carpetas
+    for (const day of await listDir(person.name)) {
+      if (day.id) continue;
+      for (const f of await listDir(`${person.name}/${day.name}`)) {
+        if (!f.id || f.name === ".emptyFolderPlaceholder") continue;
+        out.push({
+          path: `${person.name}/${day.name}/${f.name}`, name: f.name, person: person.name, date: day.name,
+          size: Number((f.metadata as any)?.size || 0), mime: String((f.metadata as any)?.mimetype || ""), created: f.created_at || new Date().toISOString(),
+        });
+      }
+    }
+  }
+  return out;
+}
+
+/** Barrido: borra lo que ya ha cumplido sus 14 días. Devuelve cuántos archivos ha borrado. */
+export async function sweep(files?: StoredFile[]) {
+  const all = files || (await listAll());
+  const old = all.filter((f) => isExpired(f.created)).map((f) => f.path);
+  for (let i = 0; i < old.length; i += 100) { const { error } = await store().remove(old.slice(i, i + 100)); if (error) throw error; }
+  return old.length;
+}
+
+export async function upload(person: string, date: string, file: File) {
+  const path = `${person}/${date}/${file.name}`;
+  const { error } = await store().upload(path, file, { upsert: true, contentType: file.type || undefined });
+  if (error) throw error;
+  return path;
+}
+
+export const remove = async (paths: string[]) => { const { error } = await store().remove(paths); if (error) throw error; };
+
+export async function signedUrl(path: string, download = false) {
+  const { data, error } = await store().createSignedUrl(path, 3600, download ? { download: path.split("/").pop() } : undefined);
+  if (error) throw error;
+  return data.signedUrl;
+}
+
+export async function readText(path: string) {
+  const { data, error } = await store().download(path);
+  if (error) throw error;
+  return await data.text();
+}
+
+export const isText = (f: StoredFile) => f.mime.startsWith("text/") || /\.(txt|md|json)$/i.test(f.name);
+export const isImage = (f: StoredFile) => f.mime.startsWith("image/") || /\.(png|jpe?g|webp|gif)$/i.test(f.name);
+export const isVideo = (f: StoredFile) => f.mime.startsWith("video/") || /\.(mp4|mov|webm)$/i.test(f.name);
+export const fmtSize = (b: number) => (b > 1e6 ? `${(b / 1e6).toFixed(1)} MB` : b > 1e3 ? `${Math.round(b / 1e3)} KB` : `${b} B`);
