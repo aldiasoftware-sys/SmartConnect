@@ -4,6 +4,7 @@ import { useState } from "react";
 import { X, Trash2, Check } from "lucide-react";
 import { KINDS, PLATFORMS, Post, STATUSES } from "@/lib/social";
 import { deleteRow, saveRow } from "@/lib/store";
+import { discard } from "@/lib/files";
 import Portal from "./Portal";
 
 const KINDS_BY_PLATFORM: Record<string, string[]> = {
@@ -27,7 +28,14 @@ export default function PostEditor({ post, onClose, onSaved }: { post: Post; onC
     try { await saveRow<Post>("content_posts", { ...next, publish_date: next.publish_date || null }); onSaved(); onClose(); }
     catch (e: any) { setError(e?.message || "No se ha podido guardar."); setSaving(false); }
   }
-  async function remove() { if (p.id) { await deleteRow("content_posts", p.id); onSaved(); onClose(); } }
+  async function remove() {
+    if (!p.id) return;
+    try {
+      // si sale de un vídeo de Archivos, se apunta como descartada para que la sincronización no la vuelva a crear
+      if (p.archivo) await discard(p.archivo, p.platform);
+      await deleteRow("content_posts", p.id); onSaved(); onClose();
+    } catch (e: any) { setError(e?.message || "No se ha podido borrar."); }
+  }
 
   return (
     <Portal>

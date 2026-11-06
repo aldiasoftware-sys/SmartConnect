@@ -6,7 +6,7 @@ import { ArrowRight, Wand2, CalendarCheck } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useSocial } from "@/lib/SocialContext";
 import {
-  ACCOUNTS, DIAGNOSTICS_TO_VALIDATE, DIAS, KINDS, OPEN_OFFER, OWN_CHANNELS, Offer, PLATFORMS, Person, SAAS_REPEAT, TARGETS,
+  ACCOUNTS, DIAS, KINDS, OPEN_OFFER, OWN_CHANNELS, Offer, PLATFORMS, Person, SAAS_REPEAT, TARGETS,
   addDays, contentByWeek, fmt, followerSeries, fromISO, hoursWaiting, latestFollowers, patterns, shortDate, statusOf, today, weekLabel, weekNumber, weekRange, weekStart,
 } from "@/lib/social";
 import { listRows } from "@/lib/store";
@@ -54,7 +54,7 @@ export default function EstaSemanaPage() {
     { n: "01", l: "Atraer", v: snapshots.length ? fmt(followers) : "—", s: snapshots.length ? `seguidores · ${delta >= 0 ? "+" : ""}${fmt(delta)} esta semana` : "haz el check-in de seguidores", href: "/redes" },
     { n: "02", l: "Capturar", v: String(newLeads), s: `leads nuevos esta semana · ${people.filter((p) => p.kind === "lead").length} en total`, href: "/comunidad" },
     { n: "03", l: "Nutrir", v: String(contacts), s: `contactos con los que ya hablamos · ${people.filter((p) => p.kind === "cliente").length} clientes`, href: "/comunidad" },
-    { n: "04", l: "Convertir", v: String(openOffers.length), s: `ofertas abiertas · ${diagnostics}/${DIAGNOSTICS_TO_VALIDATE} diagnósticos`, href: "/ofertas" },
+    { n: "04", l: "Convertir", v: String(openOffers.length), s: `ofertas abiertas · ${diagnostics} ${diagnostics === 1 ? "diagnóstico" : "diagnósticos"}`, href: "/ofertas" },
     { n: "05", l: "Operación SaaS", v: topPattern ? `${topPattern.clients}/${SAAS_REPEAT}` : "—", s: topPattern ? `«${topPattern.pattern}» se repite` : "sin patrones todavía", href: "/ofertas" },
   ];
 

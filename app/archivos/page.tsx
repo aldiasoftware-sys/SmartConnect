@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { DragEvent, useEffect, useRef, useState } from "react";
 import { Folder, FolderOpen, ChevronRight, Upload, Trash2, Clock, HardDrive, RefreshCw, Film } from "lucide-react";
 import { DIAS, fromISO, shortDate, today } from "@/lib/social";
 import { KEEP_DAYS, PEOPLE, StoredFile, bucketExists, deletesOn, fmtSize, isVideo, listAll, remove, sweep, upload } from "@/lib/files";
 import { FileCard, KitCard, groupKits } from "@/components/ArchivosKit";
+import { CardMenu, Papelera, TrashItem, trashDrag } from "@/components/Papelera";
 import { useSocial } from "@/lib/SocialContext";
 import { useScope } from "@/lib/ScopeContext";
 
@@ -18,7 +19,8 @@ export default function ArchivosPage() {
   const [person, setPerson] = useState<string | null>(null);
   const [day, setDay] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [drag, setDrag] = useState(false);
+  const [drag, setDrag] = useState(false);          // archivos del ordenador encima de la página (para subir)
+  const [dragging, setDragging] = useState(false);  // una tarjeta arrastrándose (hacia la papelera)
   const input = useRef<HTMLInputElement>(null);
 
   const { refresh } = useSocial();
@@ -49,13 +51,24 @@ export default function ArchivosPage() {
     setBusy(false);
   }
 
+  /** Borrar desde el menú «⋯» o soltando en la papelera: siempre con confirmación. */
+  async function askDelete(item: TrashItem) {
+    setDragging(false);
+    if (!item.paths.length || !confirm(`¿Borrar ${item.label}? No se puede deshacer.`)) return;
+    setError("");
+    try { await remove(item.paths); await load(); }
+    catch (e: any) { setError(e?.message || "No se ha podido borrar."); }
+  }
+  const dragTo = (item: TrashItem) => trashDrag(item, () => setDragging(true), () => setDragging(false));
+  const hasFiles = (e: DragEvent) => e.dataTransfer.types.includes("Files");
+
   const days = person ? Array.from(new Set(files.filter((f) => f.person === person).map((f) => f.date))).sort().reverse() : [];
   const inDay = files.filter((f) => f.person === person && f.date === day).sort((a, b) => a.name.localeCompare(b.name));
   const used = files.reduce((s, f) => s + f.size, 0);
 
   return (
-    <div className="page-wrapper" onDragOver={(e) => { if (person) { e.preventDefault(); setDrag(true); } }} onDragLeave={() => setDrag(false)}
-      onDrop={(e) => { e.preventDefault(); setDrag(false); if (person && e.dataTransfer.files.length) send(e.dataTransfer.files); }}>
+    <div className="page-wrapper" onDragOver={(e) => { if (person && hasFiles(e)) { e.preventDefault(); setDrag(true); } }} onDragLeave={() => setDrag(false)}
+      onDrop={(e) => { if (!hasFiles(e)) return; e.preventDefault(); setDrag(false); if (person && e.dataTransfer.files.length) send(e.dataTransfer.files); }}>
       <div className="page-header">
         <div>
           <div className="eyebrow">Guille · Alejandro</div>
@@ -114,36 +127,50 @@ export default function ArchivosPage() {
             {days.map((d) => {
               const fs = files.filter((f) => f.person === person && f.date === d);
               const first = fs.map((f) => f.created).sort()[0];
+              const item = { paths: fs.map((f) => f.path), label: `la carpeta del ${dayLabel(d)} (${fs.length} ${fs.length === 1 ? "archivo" : "archivos"})` };
               return (
-                <button key={d} className="card day-card" onClick={() => setDay(d)}>
+                // no es <button> porque lleva dentro el botón «⋯»
+                <div key={d} role="button" tabIndex={0} className="card day-card" onClick={() => setDay(d)}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setDay(d); } }} {...dragTo(item)}>
                   <div className="flex items-center justify-between" style={{ marginBottom: 14 }}>
                     <Folder style={{ width: 24, height: 24 }} />
-                    <span className="chip"><Clock style={{ width: 12, height: 12 }} /> {shortDate(deletesOn(first))}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="chip"><Clock style={{ width: 12, height: 12 }} /> {shortDate(deletesOn(first))}</span>
+                      <CardMenu onDelete={() => askDelete(item)} />
+                    </div>
                   </div>
                   <div className="day-big">{fromISO(d).getDate()} <span>{shortDate(d).split(" ")[1]}</span></div>
                   <div className="section-sub" style={{ textTransform: "capitalize" }}>{dayLabel(d).split(" ")[0]}</div>
                   <div className="flex items-center gap-2 text-sm" style={{ marginTop: 10, color: "var(--text-secondary)" }}>
                     <Film style={{ width: 14, height: 14 }} /> {groupKits(fs).kits.length} {groupKits(fs).kits.length === 1 ? "vídeo" : "vídeos"}{groupKits(fs).loose.length ? ` · ${groupKits(fs).loose.length} sueltos` : ""}
                   </div>
-                </button>
+                </div>
               );
             })}
           </div>
         )
       ) : (
         <div className="flex flex-col gap-4">
-          {groupKits(inDay).kits.map((k) => <KitCard key={k.name} kit={k} onDelete={async (paths) => { await remove(paths); load(); }} />)}
+          {groupKits(inDay).kits.map((k) => {
+            const item = { paths: k.files.map((f) => f.path), label: `«${k.name}» y sus ${k.files.length} archivos` };
+            return <KitCard key={k.name} kit={k} onDelete={() => askDelete(item)} drag={dragTo(item)} />;
+          })}
           {groupKits(inDay).loose.length > 0 && (
             <>
               {groupKits(inDay).kits.length > 0 && <div className="eyebrow" style={{ marginTop: "0.5rem" }}>Otros archivos</div>}
               <div className="file-grid">
-                {groupKits(inDay).loose.map((f) => <FileCard key={f.path} f={f} onDelete={async () => { await remove([f.path]); load(); }} />)}
+                {groupKits(inDay).loose.map((f) => {
+                  const item = { paths: [f.path], label: `«${f.name}»` };
+                  return <FileCard key={f.path} f={f} onDelete={() => askDelete(item)} drag={dragTo(item)} />;
+                })}
               </div>
             </>
           )}
           {inDay.length === 0 && <div className="card empty">Carpeta vacía.</div>}
         </div>
       )}
+
+      {person && <Papelera dragging={dragging} onDrop={askDelete} />}
     </div>
   );
 }

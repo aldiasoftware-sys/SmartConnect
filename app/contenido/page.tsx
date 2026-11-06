@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, Plus, Wand2, HardDrive, Lightbulb, AlertTriangle } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Wand2, HardDrive, AlertTriangle } from "lucide-react";
 import { useSocial } from "@/lib/SocialContext";
 import { DIAS, KINDS, PLATFORMS, Post, STATUSES, TARGETS, addDays, contentByWeek, fromISO, shortDate, statusOf, today, weekLabel, weekNumber, weekStart } from "@/lib/social";
 import { loadWeekTemplate } from "@/lib/content";
@@ -33,7 +33,6 @@ export default function ContenidoPage() {
 
   const days = Array.from({ length: 7 }, (_, i) => addDays(week, i));
   const weekPosts = posts.filter((p) => p.publish_date && p.publish_date >= week && p.publish_date <= days[6]);
-  const ideas = posts.filter((p) => !p.publish_date);
   const stats = contentByWeek(posts, [week])[0];
   const planned = (pl: string) => weekPosts.filter((p) => p.platform === pl).length;
   // regla: 1 publicación al día por red como máximo
@@ -113,23 +112,6 @@ export default function ContenidoPage() {
             {i < 5 && <button className="add-slot" onClick={() => setEditing(blank(d, i === 4 ? "linkedin" : "tiktok"))}>+ Añadir</button>}
           </div>
         ))}
-      </div>
-
-      <div className="grid-2-1">
-        <div className="card">
-          <div className="flex justify-between items-center" style={{ marginBottom: "1rem" }}>
-            <div><h3 className="section-title flex items-center gap-2"><Lightbulb style={{ width: 17, height: 17 }} /> Banco de ideas</h3><p className="section-sub">Lo que sale de la pregunta del viernes, de los comentarios y de los diagnósticos. Ponle fecha para llevarlo al calendario.</p></div>
-            <button className="btn-secondary" onClick={() => setEditing(blank(null))}><Plus style={{ width: 15, height: 15 }} /> Idea</button>
-          </div>
-          {ideas.length === 0 ? <div className="empty">Sin ideas guardadas todavía.</div> : (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "0.625rem" }}>{ideas.map(card)}</div>
-          )}
-        </div>
-        <div className="flex flex-col gap-3">
-          <div className="quote"><div className="eyebrow">Calidad antes que cantidad</div><p>Nada de fotos de relleno, guiones hechos deprisa o mensajes vacíos. Antes una buena pieza que cincuenta vídeos en un día.</p></div>
-          <div className="quote"><div className="eyebrow">Guiones naturales</div><p>Nos van a ver ingenieros, panaderos y chavales de 14 años: que suene natural y se entienda.</p></div>
-          <div className="quote"><div className="eyebrow">Carga estimada</div><p>Unas horas el fin de semana y como mucho 1 hora al día. Si no es sostenible, se baja la cadencia, nunca la calidad.</p></div>
-        </div>
       </div>
 
       {editing && <PostEditor post={editing} onClose={() => setEditing(null)} onSaved={refresh} />}

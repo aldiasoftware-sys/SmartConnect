@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, X, Trash2, Search, HardDrive, Clock, CheckCircle2, ArrowUpRight, Users, ChevronLeft, ChevronRight, Briefcase } from "lucide-react";
+import { Plus, X, Trash2, Search, HardDrive, CheckCircle2, ArrowUpRight, Users, ChevronLeft, ChevronRight, Briefcase } from "lucide-react";
 import { useSocial } from "@/lib/SocialContext";
 import { ORIGINS, OWN_CHANNELS, PERSON_KINDS, Person, PersonKind, kindOf, SKOOL_AT, fmt, hoursWaiting, latestFollowers, pct, shortDate, today, weekStart } from "@/lib/social";
 import { deleteRow, listRows, saveRow, tableMode } from "@/lib/store";
@@ -34,7 +34,6 @@ export default function ComunidadPage() {
   const replied = (p: Person) => save({ ...p, pending_reply: false, last_contact: today() });
 
   const pending = people.filter((p) => p.pending_reply).sort((a, b) => hoursWaiting(b) - hoursWaiting(a));
-  const late = pending.filter((p) => hoursWaiting(p) > 24).length;
   const leads = people.filter((p) => p.kind === "lead").length;
   const contacts = people.filter((p) => p.kind === "contacto").length;
   const clients = people.filter((p) => p.kind === "cliente").length;
@@ -63,15 +62,10 @@ export default function ComunidadPage() {
 
       {local && <div className="banner"><HardDrive /><div><b>La comunidad se está guardando solo en este navegador.</b> Ejecuta <code>redes_setup.sql</code> en Supabase para compartirla; lo que haya aquí se sube solo.</div></div>}
 
-      <div className="grid-4" style={{ marginBottom: "1.25rem" }}>
+      <div className="grid-3" style={{ marginBottom: "1.25rem" }}>
         <div className="card kpi"><div className="kpi-label">Leads <Users /></div><div className="kpi-value">{leads}</div><div className="kpi-sub">{newThisWeek} nuevos esta semana</div></div>
         <div className="card kpi"><div className="kpi-label">Contactos <CheckCircle2 /></div><div className="kpi-value">{contacts}</div><div className="kpi-sub">Ya hemos hablado; trato de tú a tú</div></div>
         <div className="card kpi"><div className="kpi-label">Clientes <Briefcase /></div><div className="kpi-value">{clients}</div><div className="kpi-sub">{people.length ? `${Math.round((clients / people.length) * 100)}% de la comunidad` : "Ya trabajan con nosotros"}</div></div>
-        <div className={`card kpi ${late ? "" : ""}`} style={late ? { borderColor: "#f6c9cb", background: "#fff8f8" } : undefined}>
-          <div className="kpi-label">Sin responder <Clock /></div>
-          <div className="kpi-value" style={{ color: late ? "var(--bad)" : undefined }}>{pending.length}</div>
-          <div className="kpi-sub">{late ? <span style={{ color: "var(--bad)", fontWeight: 600 }}>{late} llevan más de 24 h</span> : "Regla: responder en menos de 24 h"}</div>
-        </div>
       </div>
 
       <div className="grid-3" style={{ marginBottom: "1.25rem" }}>

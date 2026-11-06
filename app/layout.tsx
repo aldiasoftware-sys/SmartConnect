@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { CalendarCheck, LogOut } from "lucide-react";
+import { CalendarCheck, CalendarDays, LogOut, User, Users } from "lucide-react";
 import "./globals.css";
 import Sidebar, { NAV_SECTIONS } from "@/components/Sidebar";
 import WeeklyCheckin from "@/components/WeeklyCheckin";
@@ -30,23 +30,27 @@ function Header() {
       </div>
       <div className="header-actions">
         {me && (
-          <div className="seg scope-seg" title="Ver lo de los dos o solo lo tuyo">
-            <button className={scope === "equipo" ? "on" : ""} onClick={() => setScope("equipo")}>Equipo</button>
-            <button className={scope === "yo" ? "on" : ""} onClick={() => setScope("yo")}>{me.name}</button>
+          <div className="hdr-scope" role="group" aria-label="Ver lo de los dos o solo lo tuyo">
+            <button className={scope === "equipo" ? "on" : ""} onClick={() => setScope("equipo")}><Users /> Equipo</button>
+            <button className={scope === "yo" ? "on" : ""} onClick={() => setScope("yo")}><User /> {me.name}</button>
           </div>
         )}
-        <span className="week-chip">Semana {weekNumber(w)} · {weekLabel(w)}</span>
-        {pending ? (
-          <button className="checkin-btn" onClick={() => openCheckin()} title="Apuntar los seguidores de esta semana">
-            <span className="pulse-dot" /> Check-in pendiente
-          </button>
-        ) : (
-          <button className="checkin-btn done" onClick={() => openCheckin()} title="Check-in hecho · el próximo se abre el lunes a las 8:00">
-            <CalendarCheck /> Próximo check-in <b>{countdown(nextCheckinAt())}</b>
-          </button>
-        )}
-        <div className="avatar" title={user?.email || ""} style={{ background: "var(--brand)", color: "#fff", borderColor: "var(--brand)" }}>{(user?.email || "A")[0].toUpperCase()}</div>
-        <button className="checkin-btn" onClick={signOut} title="Cerrar sesión" aria-label="Cerrar sesión"><LogOut /></button>
+        <div className="hdr-dock">
+          <span className="hdr-week" title={`Semana ${weekNumber(w)} · ${weekLabel(w)}`}><CalendarDays /> <b>S{weekNumber(w)}</b><span>{weekLabel(w)}</span></span>
+          <i className="hdr-sep" />
+          {pending ? (
+            <button className="hdr-checkin due" onClick={() => openCheckin()} title="Apuntar los seguidores de esta semana">
+              <span className="pulse-dot" /> Check-in pendiente
+            </button>
+          ) : (
+            <button className="hdr-checkin" onClick={() => openCheckin()} title="Check-in hecho · el próximo se abre el lunes a las 8:00">
+              <CalendarCheck /> Próximo check-in <b>{countdown(nextCheckinAt())}</b>
+            </button>
+          )}
+          <i className="hdr-sep" />
+          <span className="hdr-me" title={user?.email || ""}>{(user?.email || "A")[0].toUpperCase()}</span>
+          <button className="hdr-out" onClick={signOut} title="Cerrar sesión" aria-label="Cerrar sesión"><LogOut /></button>
+        </div>
       </div>
     </header>
   );

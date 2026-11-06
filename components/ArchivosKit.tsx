@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Download, Trash2, Copy, Check, FileText, Film, Image as ImageIcon, File as FileIcon, Clock, Linkedin } from "lucide-react";
+import { HTMLAttributes, useEffect, useState } from "react";
+import { Download, Copy, Check, FileText, Film, Image as ImageIcon, File as FileIcon, Clock, Linkedin } from "lucide-react";
 import { fromISO, shortDate, today } from "@/lib/social";
 import { Kit, StoredFile, deletesOn, fmtSize, isImage, isText, isVideo, readText, signedUrl } from "@/lib/files";
+import { CardMenu } from "./Papelera";
 export { groupKits } from "@/lib/files";
 
 const daysLeft = (created: string) => Math.max(0, Math.round((fromISO(deletesOn(created)).getTime() - fromISO(today()).getTime()) / 86400000));
@@ -24,8 +25,9 @@ const Expiry = ({ created }: { created: string }) => {
 
 async function download(f: StoredFile) { window.open(await signedUrl(f.path, true), "_blank"); }
 
-/** Un vídeo listo para publicar: vídeo/miniatura a la izquierda y los textos de cada red a la derecha. */
-export function KitCard({ kit, onDelete }: { kit: Kit; onDelete: (paths: string[]) => void }) {
+/** Un vídeo listo para publicar: vídeo/miniatura a la izquierda y los textos de cada red a la derecha.
+ *  `onDelete` pide borrarlo (la página confirma); `drag` lo hace arrastrable a la papelera. */
+export function KitCard({ kit, onDelete, drag }: { kit: Kit; onDelete: () => void; drag?: HTMLAttributes<HTMLDivElement> }) {
   const [tab, setTab] = useState<"video" | "thumb">(kit.video ? "video" : "thumb");
   const [urls, setUrls] = useState<Record<string, string>>({});
   const [li, setLi] = useState<{ title: string; desc: string } | null>(null);
@@ -44,7 +46,7 @@ export function KitCard({ kit, onDelete }: { kit: Kit; onDelete: (paths: string[
   const first = kit.files.map((f) => f.created).sort()[0];
 
   return (
-    <div className="kit">
+    <div className="kit" {...drag}>
       <div className="kit-media">
         <div className="kit-frame">
           {media && urls[media.path] ? (tab === "video"
@@ -68,7 +70,7 @@ export function KitCard({ kit, onDelete }: { kit: Kit; onDelete: (paths: string[
           </div>
           <div className="flex items-center gap-2" style={{ flexShrink: 0 }}>
             <Expiry created={first} />
-            <button className="icon-btn" title="Borrar este vídeo y sus textos" onClick={() => { if (confirm(`¿Borrar «${kit.name}» y todos sus archivos?`)) onDelete(kit.files.map((f) => f.path)); }}><Trash2 /></button>
+            <CardMenu onDelete={onDelete} />
           </div>
         </div>
 
@@ -119,7 +121,7 @@ export function KitCard({ kit, onDelete }: { kit: Kit; onDelete: (paths: string[
 }
 
 /** Archivo suelto (subido a mano). */
-export function FileCard({ f, onDelete }: { f: StoredFile; onDelete: () => void }) {
+export function FileCard({ f, onDelete, drag }: { f: StoredFile; onDelete: () => void; drag?: HTMLAttributes<HTMLDivElement> }) {
   const [url, setUrl] = useState<string | null>(null);
   const [text, setText] = useState<string | null>(null);
   useEffect(() => {
@@ -128,7 +130,7 @@ export function FileCard({ f, onDelete }: { f: StoredFile; onDelete: () => void 
   }, [f.path]); // eslint-disable-line react-hooks/exhaustive-deps
   const Icon = isVideo(f) ? Film : isImage(f) ? ImageIcon : isText(f) ? FileText : FileIcon;
   return (
-    <div className="file-card">
+    <div className="file-card" {...drag}>
       <div className="file-prev">
         {isVideo(f) && url && <video src={url} controls preload="metadata" />}
         {isImage(f) && url && <img src={url} alt={f.name} />}
@@ -146,7 +148,7 @@ export function FileCard({ f, onDelete }: { f: StoredFile; onDelete: () => void 
         <div className="flex gap-2" style={{ marginTop: 10 }}>
           {isText(f) && text !== null && <CopyButton text={text} />}
           <button className="copy-btn" onClick={() => download(f)}><Download /> Descargar</button>
-          <button className="icon-btn" style={{ marginLeft: "auto" }} onClick={() => { if (confirm(`¿Borrar «${f.name}»?`)) onDelete(); }} aria-label={`Borrar ${f.name}`}><Trash2 /></button>
+          <div style={{ marginLeft: "auto" }}><CardMenu onDelete={onDelete} /></div>
         </div>
       </div>
     </div>

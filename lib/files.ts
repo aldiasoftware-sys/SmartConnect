@@ -28,11 +28,11 @@ export async function bucketExists() {
   return !error && !!data;
 }
 
-/** Todos los archivos (persona / fecha / archivo). */
+/** Todos los archivos (persona / fecha / archivo). Las carpetas que empiezan por «.» son internas y no salen. */
 export async function listAll(): Promise<StoredFile[]> {
   const out: StoredFile[] = [];
   for (const person of await listDir("")) {
-    if (person.id) continue; // solo carpetas
+    if (person.id || person.name.startsWith(".")) continue; // solo carpetas de persona
     for (const day of await listDir(person.name)) {
       if (day.id) continue;
       for (const f of await listDir(`${person.name}/${day.name}`)) {
@@ -63,6 +63,35 @@ export async function upload(person: string, date: string, file: File) {
 }
 
 export const remove = async (paths: string[]) => { const { error } = await store().remove(paths); if (error) throw error; };
+
+// Piezas del calendario borradas a mano: su vídeo sigue en Archivos, así que se apuntan como descartadas
+// (un archivo vacío en .descartes/<persona>/<fecha>/<pieza> ~ <red>) para que la sincronización no las vuelva a crear.
+const DISCARDS = ".descartes";
+const discardPath = (archivo: string, platform: string) => `${DISCARDS}/${archivo} ~ ${platform}`;
+
+export async function discard(archivo: string, platform: string) {
+  const { error } = await store().upload(discardPath(archivo, platform), new Blob([""], { type: "text/plain" }), { upsert: true });
+  if (error) throw error;
+}
+
+/** Descartes como «persona/fecha/pieza ~ red». */
+export async function listDiscarded(): Promise<Set<string>> {
+  const out = new Set<string>();
+  for (const person of await listDir(DISCARDS)) {
+    if (person.id) continue;
+    for (const day of await listDir(`${DISCARDS}/${person.name}`)) {
+      if (day.id) continue;
+      for (const f of await listDir(`${DISCARDS}/${person.name}/${day.name}`)) if (f.id) out.add(`${person.name}/${day.name}/${f.name}`);
+    }
+  }
+  return out;
+}
+export const isDiscarded = (set: Set<string>, archivo: string, platform: string) => set.has(`${archivo} ~ ${platform}`);
+/** Quita las marcas de piezas cuyo vídeo ya no está en Archivos. */
+export async function pruneDiscarded(set: Set<string>, alive: Set<string>) {
+  const old = Array.from(set).filter((k) => !alive.has(k.replace(/ ~ [^~]+$/, ""))).map((k) => `${DISCARDS}/${k}`);
+  if (old.length) await remove(old);
+}
 
 export async function signedUrl(path: string, download = false) {
   const { data, error } = await store().createSignedUrl(path, 3600, download ? { download: path.split("/").pop() } : undefined);

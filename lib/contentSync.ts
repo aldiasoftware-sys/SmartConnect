@@ -1,10 +1,11 @@
 import { supabase } from "./supabase";
-import { Kit, StoredFile, bucketExists, groupKits, listAll, readText } from "./files";
+import { Kit, StoredFile, bucketExists, groupKits, isDiscarded, listAll, listDiscarded, pruneDiscarded, readText } from "./files";
 import { Post, addDays, fromISO, today } from "./social";
 import { deleteRow, listRows, saveRow, tableMode } from "./store";
 
 // Archivos → Calendario: cada vídeo que entra en Archivos aparece solo en el calendario (una pieza de TikTok y otra de LinkedIn),
 // se actualiza si se cambian sus textos y desaparece si se borra. Lo publicado o con fecha pasada se queda (historial y fallos).
+// Si una pieza se borra a mano en el calendario, queda descartada (lib/files.ts) y no se vuelve a crear aunque su vídeo siga en Archivos.
 const OWNER: Record<string, string> = { Guille: "Guille", Alejandro: "Millán" };
 
 /** Se publica de lunes a viernes; el sábado se graba y el domingo se plantea la semana. */
@@ -48,6 +49,7 @@ async function run() {
   const folders = new Map<string, StoredFile[]>();
   for (const f of files) { const k = `${f.person}/${f.date}`; folders.set(k, [...(folders.get(k) || []), f]); }
   const posts = await listRows<Post>("content_posts");
+  const discarded = await listDiscarded().catch(() => new Set<string>());
   const t = today(); let changed = false; const alive = new Set<string>();
 
   for (const [folder, fs] of Array.from(folders.entries())) {
@@ -62,6 +64,7 @@ async function run() {
       ];
       for (const w of want) {
         const cur = posts.find((p) => p.archivo === key && p.platform === w.platform);
+        if (!cur && isDiscarded(discarded, key, w.platform)) continue;   // la borraron a mano en el calendario
         if (!cur) {
           const { day, reuse } = firstSlot(posts, w.platform, date > t ? date : t);
           try {
@@ -82,5 +85,6 @@ async function run() {
     if (!p.archivo || alive.has(p.archivo) || p.status === "publicado" || (p.publish_date && p.publish_date < t)) continue;
     await deleteRow("content_posts", p.id!); changed = true;
   }
+  await pruneDiscarded(discarded, alive).catch(() => { /* se reintenta en la próxima sincronización */ });
   return changed;
 }
