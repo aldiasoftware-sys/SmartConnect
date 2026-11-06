@@ -103,9 +103,14 @@ export default function ContenidoPage() {
         {days.map((d, i) => (
           <div key={d} className={`day-col ${d === t ? "today" : ""} ${i >= 5 ? "weekend" : ""}`}>
             <div className="day-head"><b>{DIAS[i]}</b><span>{fromISO(d).getDate()}</span></div>
-            {i >= 5 && weekPosts.filter((p) => p.publish_date === d).length === 0 && <p className="text-xs text-muted" style={{ padding: "0 0.25rem" }}>{i === 5 ? "Grabar en lote" : "Preparar la semana"}</p>}
+            {i >= 5 && (
+              <div className="day-off">
+                <b>{i === 5 ? "Día de grabación" : "Planteamiento de la semana"}</b>
+                <span>{i === 5 ? "Se graba en lote todo lo de la semana." : "Se decide qué se publica de lunes a viernes."}</span>
+              </div>
+            )}
             {weekPosts.filter((p) => p.publish_date === d).sort((a, b) => a.platform.localeCompare(b.platform)).map(card)}
-            <button className="add-slot" onClick={() => setEditing(blank(d, i === 4 ? "linkedin" : "tiktok"))}>+ Añadir</button>
+            {i < 5 && <button className="add-slot" onClick={() => setEditing(blank(d, i === 4 ? "linkedin" : "tiktok"))}>+ Añadir</button>}
           </div>
         ))}
       </div>

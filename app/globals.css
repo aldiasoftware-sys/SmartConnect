@@ -1255,3 +1255,8 @@ input::placeholder, textarea::placeholder {
 
 .scope-seg { background: #fff; border: 1px solid var(--border-color); }
 .scope-seg button.on { background: var(--ink); color: #fff; }
+
+/* fin de semana: no se publica (sábado grabación, domingo planteamiento de la semana) */
+.day-off { margin-top: 0.25rem; padding: 0.75rem; border-radius: 10px; background: #fff; border: 1px dashed var(--border-strong); }
+.day-off b { display: block; font-size: 0.8125rem; font-weight: 700; margin-bottom: 2px; }
+.day-off span { display: block; font-size: 0.75rem; color: var(--text-secondary); line-height: 1.4; }

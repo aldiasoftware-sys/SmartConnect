@@ -1,16 +1,26 @@
 import { supabase } from "./supabase";
 import { Kit, StoredFile, bucketExists, groupKits, listAll, readText } from "./files";
-import { Post, addDays, today } from "./social";
+import { Post, addDays, fromISO, today } from "./social";
 import { deleteRow, listRows, saveRow, tableMode } from "./store";
 
 // Archivos → Calendario: cada vídeo que entra en Archivos aparece solo en el calendario (una pieza de TikTok y otra de LinkedIn),
 // se actualiza si se cambian sus textos y desaparece si se borra. Lo publicado o con fecha pasada se queda (historial y fallos).
 const OWNER: Record<string, string> = { Guille: "Guille", Alejandro: "Millán" };
 
-/** Primer día desde `from` en el que esa red no tiene nada (1 publicación al día por red como máximo). */
-function firstFree(posts: Post[], platform: string, from: string) {
-  for (let i = 0; i < 90; i++) { const d = addDays(from, i); if (!posts.some((p) => p.publish_date === d && p.platform === platform)) return d; }
-  return from;
+/** Se publica de lunes a viernes; el sábado se graba y el domingo se plantea la semana. */
+export const isPublishDay = (d: string) => { const w = fromISO(d).getDay(); return w >= 1 && w <= 5; };
+
+/** Primer día de lunes a viernes, desde `from`, en el que esa red tiene hueco (1 publicación al día por red como máximo).
+ *  Un hueco es un día sin nada en esa red o con una pieza de la semana tipo aún vacía (en «Idea» y sin vídeo), que se aprovecha. */
+function firstSlot(posts: Post[], platform: string, from: string): { day: string; reuse?: Post } {
+  for (let i = 0; i < 120; i++) {
+    const d = addDays(from, i); if (!isPublishDay(d)) continue;
+    const there = posts.filter((p) => p.publish_date === d && p.platform === platform);
+    if (!there.length) return { day: d };
+    const idea = there.find((p) => p.status === "idea" && !p.archivo);
+    if (there.length === 1 && idea) return { day: d, reuse: idea };
+  }
+  return { day: from };
 }
 
 async function texts(kit: Kit) {
@@ -53,10 +63,12 @@ async function run() {
       for (const w of want) {
         const cur = posts.find((p) => p.archivo === key && p.platform === w.platform);
         if (!cur) {
-          const day = firstFree(posts, w.platform, date > t ? date : t);
+          const { day, reuse } = firstSlot(posts, w.platform, date > t ? date : t);
           try {
-            const saved = await saveRow<Post>("content_posts", { ...w, publish_date: day, status: "montado", archivo: key, notes: `Desde Archivos › ${person} › ${date}` });
-            posts.push(saved); changed = true;
+            const row = { ...(reuse || {}), ...w, kind: reuse?.kind || w.kind, publish_date: day, status: "montado", archivo: key, notes: `Desde Archivos › ${person} › ${date}` } as Post;
+            const saved = await saveRow<Post>("content_posts", row);
+            if (reuse) Object.assign(reuse, saved); else posts.push(saved);
+            changed = true;
           } catch { /* ya lo había creado otro (índice único) */ }
         } else if (cur.status !== "publicado" && cur.title !== w.title) {
           await saveRow<Post>("content_posts", { ...cur, title: w.title }); cur.title = w.title; changed = true;
