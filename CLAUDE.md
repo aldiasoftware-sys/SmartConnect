@@ -9,6 +9,8 @@
 - Login real con Supabase Auth (`lib/AuthContext.tsx`): sin sesión solo se ve `/login`. No hay registro; las cuentas se crean en Supabase → Authentication → Users.
 - RLS: **todas** las tablas usan la política «Solo equipo» (`public.is_team()`, email en `team_access`). La define `seguridad_rls.sql`, que se ejecuta siempre al final.
 - Nunca `USING (true)` ni políticas para `anon`. La única excepción es INSERT en `contact_messages`, para el formulario web.
+- Lo público que necesita clave secreta va en **Cloudflare Pages Functions** (`functions/`, se despliegan solas con el push; código común en `lib/server/`). Ahí, y solo ahí, se usan `SUPABASE_SERVICE_ROLE_KEY` y `RESEND_API_KEY`. Probar en local: `npx next build && npx wrangler@3 pages dev out`.
+- Páginas abiertas sin login: `OPEN_PATHS` en `lib/AuthContext.tsx` (hoy solo `/n`).
 - Al crear una tabla nueva: crearla y volver a ejecutar `seguridad_rls.sql` (le aplica la política sola).
 
 ## Quiénes y qué
@@ -63,6 +65,16 @@ Prioridad: 1) Contenido · 2) CRM · 3) Cuadro semanal y metas · 4) Registro de
 - **Check-in → Revisión del viernes:** datos → ganador → perdedor → leads → una decisión; tabla S1–S12 automática; metas verde/ámbar/rojo; registro de cambios.
 - **Equipo:** roles Cara y guion / Sistema y montaje / Comunidad y comercial; carga 6–7 h/sem + 1 h/día; checklist diario.
 
+## Newsletter «ALDIA Intelligence» (06-11, decidido: propia con Resend)
+- Tablas: `newsletter_setup.sql` (newsletter_subscribers, newsletter_editions, newsletter_sends) + volver a ejecutar `seguridad_rls.sql`.
+- Panel `/newsletter` (menú Comunidad): ediciones con vista previa en vivo, prueba al propio email, envío con reanudación; suscriptores (CSV, baja, borrar, invitar desde Comunidad); pestaña Captar (enlaces `?src=` y formulario HTML para aldiaproject.es).
+- Público `/n`: alta con doble confirmación (`?src=PALABRA` guarda el origen), `?estado=…` y baja `?baja=<token>`.
+- Funciones: `/api/newsletter/subscribe` (POST JSON o formulario), `confirm` (GET), `baja` (GET → /n; POST da de baja, también one-click RFC 8058), `send` (POST, solo equipo con su JWT; 10×100 por llamada), `estado` (GET, solo equipo).
+- Plantilla del correo en `lib/newsletter.ts` (la comparten vista previa y envío). Bloques: noticia (con fuente), automatización, herramienta, caso, recurso, nota; un solo CTA (diagnóstico gratis).
+- Variables en Cloudflare Pages: `RESEND_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `NEWSLETTER_FROM` («ALDIA Intelligence <newsletter@aldiaproject.es>», dominio verificado en Resend), opcionales `NEWSLETTER_REPLY_TO`, `NEWSLETTER_ORIGINS` (https://aldiaproject.es), `NEWSLETTER_SITE`.
+- Resend gratis: 100 correos/día y 3.000/mes; al pasar de ~100 suscriptores, plan Pro. Resend también lo usará ALDIA Reviews.
+- Metas: 50 (S4, 6-dic) · 150 (S8, 3-ene) · 300 (S12, 31-ene). Quincenal hasta el 6-dic, semanal después; sale el viernes.
+
 ## Banco de ideas de contenido
 - Lunes: noticia para pymes · herramienta nueva · resumen del mes · normativa IA.
 - Martes (palabra): FACTURAS · WHATSAPP · CITAS · PLAZOS · PRESUPUESTO · RESEÑAS · COBROS · LEADS · INFORME · EMAIL.
@@ -76,5 +88,5 @@ Prioridad: 1) Contenido · 2) CRM · 3) Cuadro semanal y metas · 4) Registro de
 - [ ] Los 2 sectores (A y B) y un problema por sector
 - [ ] Reels con cara o sin cara
 - [ ] ManyChat o flujo propio en n8n
-- [ ] Newsletter: Beehiiv o Brevo
+- [x] Newsletter: propia con Resend (06-11)
 - [ ] Responsables de cada rol

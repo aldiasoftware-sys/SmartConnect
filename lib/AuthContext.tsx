@@ -20,6 +20,8 @@ const AuthContext = createContext<AuthContextType>({
 });
 
 const PUBLIC_PATHS = ["/login"];
+/** Páginas abiertas a todo el mundo, con o sin sesión (alta y baja de la newsletter). */
+export const OPEN_PATHS = ["/n"];
 
 /**
  * Sesión real de Supabase. Sin sesión solo se ve /login; el resto de la app no se pinta.
@@ -31,6 +33,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter();
   const pathname = usePathname();
   const isPublic = PUBLIC_PATHS.includes(pathname);
+  const isOpen = OPEN_PATHS.includes(pathname);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -42,17 +45,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    if (loading) return;
+    if (loading || isOpen) return;
     if (!session && !isPublic) router.replace("/login");
     if (session && isPublic) router.replace("/");
-  }, [loading, session, isPublic, router]);
+  }, [loading, session, isPublic, isOpen, router]);
 
   const signOut = async () => {
     await supabase.auth.signOut();
     router.replace("/login");
   };
 
-  const ready = !loading && (isPublic ? !session : !!session);
+  const ready = isOpen || (!loading && (isPublic ? !session : !!session));
 
   return (
     <AuthContext.Provider value={{ user: session?.user ?? null, session, loading, signOut }}>

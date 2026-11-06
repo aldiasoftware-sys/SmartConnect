@@ -7,7 +7,7 @@ import Sidebar, { NAV_SECTIONS } from "@/components/Sidebar";
 import WeeklyCheckin from "@/components/WeeklyCheckin";
 import SalesProvider from "@/lib/SalesContext";
 import SocialProvider, { useSocial } from "@/lib/SocialContext";
-import { AuthProvider, useAuth } from "@/lib/AuthContext";
+import { AuthProvider, OPEN_PATHS, useAuth } from "@/lib/AuthContext";
 import ScopeProvider, { useScope } from "@/lib/ScopeContext";
 import { countdown, nextCheckinAt, weekLabel, weekNumber, weekStart } from "@/lib/social";
 import { sweep } from "@/lib/files";
@@ -69,7 +69,7 @@ function SweepFiles() {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const pathname = usePathname();
-  const isAuthPage = pathname === "/login" || pathname === "/register";
+  const isAuthPage = pathname === "/login" || pathname === "/register" || OPEN_PATHS.includes(pathname);
 
   return (
     <html lang="es">
