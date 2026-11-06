@@ -9,3 +9,7 @@ VALUES ('contenido', 'contenido', false, 52428800)
 ON CONFLICT (id) DO UPDATE SET file_size_limit = EXCLUDED.file_size_limit;
 
 -- Políticas: las pone seguridad_rls.sql (ejecutarlo siempre al final). Nunca para anon.
+
+-- Archivos → Calendario: cada pieza del calendario sabe de qué vídeo de Archivos sale
+ALTER TABLE content_posts ADD COLUMN IF NOT EXISTS archivo TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS content_posts_archivo_red ON content_posts (archivo, platform) WHERE archivo IS NOT NULL;

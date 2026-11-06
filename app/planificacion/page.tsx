@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Plus, X, Trash2, Crosshair, CalendarRange, AlertTriangle, CheckCircle2, Activity, HardDrive } from "lucide-react";
 import Portal from "@/components/Portal";
+import { useScope } from "@/lib/ScopeContext";
 import { GanttItem, addDays, daysBetween, fromISO, shortDate, toISO, weekNumber, weekStart } from "@/lib/social";
 import { deleteRow, listRows, saveRow, tableMode } from "@/lib/store";
 
@@ -26,6 +27,8 @@ export default function PlanificacionPage() {
   const [local, setLocal] = useState(false);
   const [zoom, setZoom] = useState<"dias" | "semanas">("dias");
   const [owner, setOwner] = useState("Todos");
+  const { me, scope } = useScope();
+  useEffect(() => { setOwner(scope === "yo" && me ? me.owner : "Todos"); }, [scope, me?.owner]); // eslint-disable-line react-hooks/exhaustive-deps
   const [editing, setEditing] = useState<GanttItem | null>(null);
   const [drag, setDrag] = useState<Drag | null>(null);
   const [preview, setPreview] = useState<{ id: string; start: string; end: string } | null>(null);

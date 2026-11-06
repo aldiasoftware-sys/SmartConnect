@@ -7,7 +7,7 @@ import { deleteRow, saveRow } from "@/lib/store";
 import Portal from "./Portal";
 
 const KINDS_BY_PLATFORM: Record<string, string[]> = {
-  tiktok: ["noticia", "automatizacion", "tutorial", "caso"],
+  tiktok: ["video", "noticia", "automatizacion", "tutorial", "caso"],
   linkedin: ["caso", "post", "pregunta"],
   newsletter: ["newsletter"],
   directo: ["directo"],

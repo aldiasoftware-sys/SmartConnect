@@ -11,11 +11,15 @@ import {
 } from "@/lib/social";
 import { listRows } from "@/lib/store";
 import { loadWeekTemplate } from "@/lib/content";
+import { useScope } from "@/lib/ScopeContext";
 
 type Meeting = { id: string; nombre_reunion: string; fecha_reunion: string; origen?: string };
 
 export default function EstaSemanaPage() {
-  const { snapshots, posts, refresh, loading, pending: checkinPending, openCheckin } = useSocial();
+  const { snapshots, posts: allPosts, refresh, loading, pending: checkinPending, openCheckin } = useSocial();
+  const { me, scope, inScope } = useScope();
+  const posts = allPosts.filter((p) => inScope(p.owner));
+  const accounts = scope === "yo" && me ? ACCOUNTS.filter((a) => a.platform === "tiktok" || a.id === me.linkedin) : ACCOUNTS;
   const [people, setPeople] = useState<Person[]>([]);
   const [offers, setOffers] = useState<Offer[]>([]);
   const [meetings, setMeetings] = useState<Meeting[]>([]);
@@ -35,11 +39,11 @@ export default function EstaSemanaPage() {
 
   // embudo del roadmap: atraer · capturar · nutrir · convertir · SaaS
   const weeks = weekRange(snapshots.map((s) => s.week_start), w);
-  const { total } = followerSeries(snapshots, weeks);
+  const { total } = followerSeries(snapshots, weeks, accounts);
   const followers = total[total.length - 1] || 0;
   const delta = total.length > 1 ? total[total.length - 1] - total[total.length - 2] : 0;
   const newLeads = people.filter((p) => (p.created_at || "").slice(0, 10) >= w).length;
-  const own = OWN_CHANNELS.reduce((s, ch) => s + (latestFollowers(snapshots, ch.id) || 0), 0);
+  const subscribed = people.filter((p) => p.stage >= 4).length;
   const openOffers = offers.filter(OPEN_OFFER);
   const diagnostics = offers.filter((o) => ["diagnostico", "propuesta", "negociacion", "ganada"].includes(o.status)).length;
   const topPattern = patterns(offers)[0];
@@ -49,7 +53,7 @@ export default function EstaSemanaPage() {
   const funnel = [
     { n: "01", l: "Atraer", v: snapshots.length ? fmt(followers) : "—", s: snapshots.length ? `seguidores · ${delta >= 0 ? "+" : ""}${fmt(delta)} esta semana` : "haz el check-in de seguidores", href: "/redes" },
     { n: "02", l: "Capturar", v: String(newLeads), s: `leads nuevos esta semana · ${people.filter((p) => p.kind === "lead").length} en total`, href: "/comunidad" },
-    { n: "03", l: "Nutrir", v: own ? fmt(own) : "—", s: "en el canal de avisos y la newsletter", href: "/comunidad" },
+    { n: "03", l: "Nutrir", v: String(subscribed), s: "personas suscritas o más arriba en la escalera", href: "/comunidad" },
     { n: "04", l: "Convertir", v: String(openOffers.length), s: `ofertas abiertas · ${diagnostics}/${DIAGNOSTICS_TO_VALIDATE} diagnósticos`, href: "/ofertas" },
     { n: "05", l: "Operación SaaS", v: topPattern ? `${topPattern.clients}/${SAAS_REPEAT}` : "—", s: topPattern ? `«${topPattern.pattern}» se repite` : "sin patrones todavía", href: "/ofertas" },
   ];

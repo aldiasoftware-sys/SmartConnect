@@ -3,9 +3,10 @@
 import { useMemo, useState } from "react";
 import { Users, TrendingUp, TrendingDown, Target, AlertTriangle, CalendarCheck, Flame, Pencil, Minus, HardDrive } from "lucide-react";
 import { useSocial } from "@/lib/SocialContext";
-import { ACCOUNTS, KINDS, addDays, PLATFORMS, TARGETS, contentByWeek, fmt, followerSeries, metMinimum, pct, shortDate, today, weekLabel, weekNumber, weekRange, weekStart } from "@/lib/social";
+import { ACCOUNTS as ALL_ACCOUNTS, KINDS, addDays, PLATFORMS, TARGETS, contentByWeek, fmt, followerSeries, metMinimum, pct, shortDate, today, weekLabel, weekNumber, weekRange, weekStart } from "@/lib/social";
 import { LineChart, PostsBars, Sparkline } from "@/components/SocialCharts";
 import AccountIcon from "@/components/AccountIcon";
+import { useScope } from "@/lib/ScopeContext";
 
 function Delta({ v, suffix = "" }: { v: number | null; suffix?: string }) {
   if (v === null) return <span className="delta flat"><Minus /> sin datos</span>;
@@ -15,7 +16,10 @@ function Delta({ v, suffix = "" }: { v: number | null; suffix?: string }) {
 }
 
 export default function RedesPage() {
-  const { snapshots, posts: allPosts, loading, local, pending, openCheckin } = useSocial();
+  const { snapshots, posts: everyPost, loading, local, pending, openCheckin } = useSocial();
+  const { me, scope, inScope } = useScope();
+  const allPosts = everyPost.filter((p) => inScope(p.owner));
+  const ACCOUNTS = scope === "yo" && me ? ALL_ACCOUNTS.filter((a) => a.platform === "tiktok" || a.id === me.linkedin) : ALL_ACCOUNTS;
   const [range, setRange] = useState<12 | 26 | 0>(12);
 
   const data = useMemo(() => {
@@ -23,7 +27,7 @@ export default function RedesPage() {
     const allWeeks = weekRange([...snapshots.map((s) => s.week_start), ...allPosts.filter((p) => p.publish_date).map((p) => p.publish_date!)], thisWeek);
     const weeks = range ? allWeeks.slice(-range) : allWeeks;
     const off = allWeeks.length - weeks.length;
-    const { series, total } = followerSeries(snapshots, allWeeks);
+    const { series, total } = followerSeries(snapshots, allWeeks, ACCOUNTS);
     // última semana con algún seguidor apuntado
     let li = allWeeks.length - 1;
     while (li > 0 && !snapshots.some((s) => s.week_start === allWeeks[li])) li--;
@@ -52,7 +56,7 @@ export default function RedesPage() {
       posts: posts.slice(-Math.min(range || 52, 12)), planned8, done8, failedAll, failedMonth, streak, failedWeeks, fails, thisWeekPosts,
       totalNow: has ? total[li] : 0,
     };
-  }, [snapshots, allPosts, range]);
+  }, [snapshots, allPosts, range, ACCOUNTS]);
 
   const d = data;
   const growth4 = d.diff(d.total, 4);

@@ -58,6 +58,16 @@ BEGIN
   END LOOP;
 END $$;
 
+-- 3b. El equipo con sesión puede usar todas las tablas; las tablas FUTURAS nacen cerradas para el público
+--     (deshace los permisos por defecto para «anon» si alguna vez se abrieron).
+GRANT USAGE ON SCHEMA public TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO authenticated;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO authenticated;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON TABLES FROM anon;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON SEQUENCES FROM anon;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO authenticated;
+REVOKE ALL ON team_access FROM anon, authenticated;
+
 -- 4. Formulario de contacto de la web: puede DEJAR mensajes sin login, pero no leerlos.
 --    (Si la web no escribe en contact_messages, este bloque no molesta.)
 GRANT INSERT ON public.contact_messages TO anon;

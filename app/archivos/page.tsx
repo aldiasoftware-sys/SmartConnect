@@ -1,62 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Folder, FolderOpen, ChevronRight, Upload, Download, Trash2, Copy, Check, FileText, Film, Image as ImageIcon, File as FileIcon, Clock, HardDrive, RefreshCw } from "lucide-react";
+import { Folder, FolderOpen, ChevronRight, Upload, Trash2, Clock, HardDrive, RefreshCw, Film } from "lucide-react";
 import { DIAS, fromISO, shortDate, today } from "@/lib/social";
-import { KEEP_DAYS, PEOPLE, StoredFile, bucketExists, deletesOn, fmtSize, isImage, isText, isVideo, listAll, readText, remove, signedUrl, sweep, upload } from "@/lib/files";
+import { KEEP_DAYS, PEOPLE, StoredFile, bucketExists, deletesOn, fmtSize, isVideo, listAll, remove, sweep, upload } from "@/lib/files";
+import { FileCard, KitCard, groupKits } from "@/components/ArchivosKit";
+import { useSocial } from "@/lib/SocialContext";
+import { useScope } from "@/lib/ScopeContext";
 
 const dayLabel = (d: string) => `${DIAS[(fromISO(d).getDay() + 6) % 7]} ${shortDate(d)}`;
-const daysLeft = (created: string) => Math.max(0, Math.round((fromISO(deletesOn(created)).getTime() - fromISO(today()).getTime()) / 86400000));
-
-function FileCard({ f, onDelete }: { f: StoredFile; onDelete: () => void }) {
-  const [url, setUrl] = useState<string | null>(null);
-  const [text, setText] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
-  useEffect(() => {
-    if (isText(f)) readText(f.path).then(setText).catch(() => setText("(no se ha podido leer)"));
-    else if (isImage(f) || isVideo(f)) signedUrl(f.path).then(setUrl).catch(() => {});
-  }, [f.path]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const left = daysLeft(f.created);
-  const Icon = isVideo(f) ? Film : isImage(f) ? ImageIcon : isText(f) ? FileText : FileIcon;
-  return (
-    <div className="card" style={{ padding: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
-      <div style={{ background: "#0e0e0e", aspectRatio: isText(f) ? undefined : "9 / 12", display: "flex", alignItems: "center", justifyContent: "center", minHeight: isText(f) ? 0 : 160 }}>
-        {isVideo(f) && url && <video src={url} controls preload="metadata" style={{ width: "100%", height: "100%", objectFit: "contain" }} />}
-        {isImage(f) && url && <img src={url} alt={f.name} style={{ width: "100%", height: "100%", objectFit: "contain" }} />}
-        {!isText(f) && !url && <Icon style={{ width: 28, height: 28, color: "#6b6f78" }} />}
-      </div>
-      {isText(f) && (
-        <div style={{ padding: "1rem 1.125rem 0", flex: 1 }}>
-          <pre style={{ whiteSpace: "pre-wrap", fontFamily: "inherit", fontSize: "0.8125rem", lineHeight: 1.5, maxHeight: 260, overflow: "auto", color: "var(--ink)" }}>{text ?? "Cargando…"}</pre>
-        </div>
-      )}
-      <div style={{ padding: "0.875rem 1.125rem 1rem" }}>
-        <div className="flex items-center gap-2" style={{ marginBottom: 6, minWidth: 0 }}>
-          <Icon style={{ width: 15, height: 15, flexShrink: 0, color: "var(--text-muted)" }} />
-          <b style={{ fontSize: "0.8125rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={f.name}>{f.name}</b>
-        </div>
-        <div className="flex items-center justify-between" style={{ gap: 8 }}>
-          <span className={`chip ${left <= 2 ? "chip-bad" : ""}`} title={`Se borra el ${shortDate(deletesOn(f.created))}`}>
-            <Clock style={{ width: 12, height: 12 }} /> {left === 0 ? "Se borra hoy" : `Se borra el ${shortDate(deletesOn(f.created))}`}
-          </span>
-          <span className="text-xs text-muted">{fmtSize(f.size)}</span>
-        </div>
-        <div className="flex gap-2" style={{ marginTop: 10 }}>
-          {isText(f) && text !== null && (
-            <button className="btn-secondary" style={{ padding: "0.4rem 0.7rem", fontSize: "0.75rem" }} onClick={async () => { await navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 1500); }}>
-              {copied ? <Check style={{ width: 14, height: 14 }} /> : <Copy style={{ width: 14, height: 14 }} />} {copied ? "Copiado" : "Copiar"}
-            </button>
-          )}
-          <button className="btn-secondary" style={{ padding: "0.4rem 0.7rem", fontSize: "0.75rem" }} onClick={async () => window.open(await signedUrl(f.path, true), "_blank")}>
-            <Download style={{ width: 14, height: 14 }} /> Descargar
-          </button>
-          <button className="icon-btn" style={{ marginLeft: "auto" }} onClick={onDelete} aria-label={`Borrar ${f.name}`}><Trash2 /></button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export default function ArchivosPage() {
   const [files, setFiles] = useState<StoredFile[]>([]);
@@ -69,6 +21,10 @@ export default function ArchivosPage() {
   const [drag, setDrag] = useState(false);
   const input = useRef<HTMLInputElement>(null);
 
+  const { refresh } = useSocial();
+  const { me, scope } = useScope();
+  useEffect(() => { if (scope === "yo" && me) { setPerson(me.folder); setDay(null); } }, [scope, me?.folder]); // eslint-disable-line react-hooks/exhaustive-deps
+  const people = scope === "yo" && me ? [me.folder] : PEOPLE;   // al cambiar Archivos, el calendario se pone al día
   async function load(doSweep = false) {
     setLoading(true); setError("");
     try {
@@ -76,6 +32,7 @@ export default function ArchivosPage() {
       let all = await listAll();
       if (doSweep) { const n = await sweep(all); if (n) { setSwept(n); all = await listAll(); } }
       setFiles(all);
+      refresh();
     } catch (e: any) {
       setError(e?.message?.includes("not found") || e?.statusCode === "404" ? "missing" : e?.message || "No se han podido leer los archivos.");
     }
@@ -128,14 +85,20 @@ export default function ArchivosPage() {
 
       {!person ? (
         <div className="grid-3">
-          {PEOPLE.map((p) => {
+          {people.map((p) => {
             const mine = files.filter((f) => f.person === p);
             const last = mine.map((f) => f.date).sort().pop();
             return (
-              <button key={p} className="card" style={{ textAlign: "left", cursor: "pointer", fontFamily: "inherit" }} onClick={() => setPerson(p)}>
-                <Folder style={{ width: 30, height: 30, marginBottom: 12 }} />
-                <div style={{ fontSize: "1.25rem", fontWeight: 800, letterSpacing: "-0.03em" }}>{p}</div>
-                <div className="section-sub">{mine.length} archivos{last ? ` · último: ${dayLabel(last)}` : ""}</div>
+              <button key={p} className="card folder-card" onClick={() => setPerson(p)}>
+                <span className="person-ini">{p[0]}</span>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: "1.25rem", fontWeight: 800, letterSpacing: "-0.03em" }}>{p}</div>
+                  <div className="section-sub">
+                    {mine.length ? `${groupKits(mine).kits.length} ${groupKits(mine).kits.length === 1 ? "vídeo" : "vídeos"} · ${fmtSize(mine.reduce((s, f) => s + f.size, 0))}` : "Vacío"}
+                    {last ? ` · último ${dayLabel(last)}` : ""}
+                  </div>
+                </div>
+                <ChevronRight style={{ width: 18, height: 18, marginLeft: "auto", color: "var(--text-muted)" }} />
               </button>
             );
           })}
@@ -152,19 +115,32 @@ export default function ArchivosPage() {
               const fs = files.filter((f) => f.person === person && f.date === d);
               const first = fs.map((f) => f.created).sort()[0];
               return (
-                <button key={d} className="card" style={{ textAlign: "left", cursor: "pointer", fontFamily: "inherit" }} onClick={() => setDay(d)}>
-                  <Folder style={{ width: 26, height: 26, marginBottom: 10 }} />
-                  <div style={{ fontWeight: 800, letterSpacing: "-0.02em" }}>{d}</div>
-                  <div className="section-sub" style={{ textTransform: "capitalize" }}>{dayLabel(d)} · {fs.length} archivos</div>
-                  <span className="chip" style={{ marginTop: 10 }}><Clock style={{ width: 12, height: 12 }} /> Se borra el {shortDate(deletesOn(first))}</span>
+                <button key={d} className="card day-card" onClick={() => setDay(d)}>
+                  <div className="flex items-center justify-between" style={{ marginBottom: 14 }}>
+                    <Folder style={{ width: 24, height: 24 }} />
+                    <span className="chip"><Clock style={{ width: 12, height: 12 }} /> {shortDate(deletesOn(first))}</span>
+                  </div>
+                  <div className="day-big">{fromISO(d).getDate()} <span>{shortDate(d).split(" ")[1]}</span></div>
+                  <div className="section-sub" style={{ textTransform: "capitalize" }}>{dayLabel(d).split(" ")[0]}</div>
+                  <div className="flex items-center gap-2 text-sm" style={{ marginTop: 10, color: "var(--text-secondary)" }}>
+                    <Film style={{ width: 14, height: 14 }} /> {groupKits(fs).kits.length} {groupKits(fs).kits.length === 1 ? "vídeo" : "vídeos"}{groupKits(fs).loose.length ? ` · ${groupKits(fs).loose.length} sueltos` : ""}
+                  </div>
                 </button>
               );
             })}
           </div>
         )
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))", gap: "1.25rem", alignItems: "start" }}>
-          {inDay.map((f) => <FileCard key={f.path} f={f} onDelete={async () => { await remove([f.path]); load(); }} />)}
+        <div className="flex flex-col gap-4">
+          {groupKits(inDay).kits.map((k) => <KitCard key={k.name} kit={k} onDelete={async (paths) => { await remove(paths); load(); }} />)}
+          {groupKits(inDay).loose.length > 0 && (
+            <>
+              {groupKits(inDay).kits.length > 0 && <div className="eyebrow" style={{ marginTop: "0.5rem" }}>Otros archivos</div>}
+              <div className="file-grid">
+                {groupKits(inDay).loose.map((f) => <FileCard key={f.path} f={f} onDelete={async () => { await remove([f.path]); load(); }} />)}
+              </div>
+            </>
+          )}
           {inDay.length === 0 && <div className="card empty">Carpeta vacía.</div>}
         </div>
       )}

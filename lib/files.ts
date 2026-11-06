@@ -80,3 +80,19 @@ export const isText = (f: StoredFile) => f.mime.startsWith("text/") || /\.(txt|m
 export const isImage = (f: StoredFile) => f.mime.startsWith("image/") || /\.(png|jpe?g|webp|gif)$/i.test(f.name);
 export const isVideo = (f: StoredFile) => f.mime.startsWith("video/") || /\.(mp4|mov|webm)$/i.test(f.name);
 export const fmtSize = (b: number) => (b > 1e6 ? `${(b / 1e6).toFixed(1)} MB` : b > 1e3 ? `${Math.round(b / 1e3)} KB` : `${b} B`);
+
+/** Los archivos que deja `aldia.py publicar`: «<pieza> - video.mp4», «- miniatura LinkedIn.png», «- LinkedIn titulo y descripcion.txt», «- TikTok titulo.txt». */
+export type Kit = { name: string; video?: StoredFile; thumb?: StoredFile; linkedin?: StoredFile; tiktok?: StoredFile; files: StoredFile[] };
+
+export function groupKits(files: StoredFile[]) {
+  const kits = new Map<string, Kit>(); const loose: StoredFile[] = [];
+  for (const f of files) {
+    const m = f.name.match(/^(.*) - (video\.\w+|miniatura LinkedIn\.\w+|LinkedIn titulo y descripcion\.txt|TikTok titulo\.txt)$/i);
+    if (!m) { loose.push(f); continue; }
+    const k = kits.get(m[1]) || { name: m[1], files: [] }; kits.set(m[1], k); k.files.push(f);
+    const part = m[2].toLowerCase();
+    if (part.startsWith("video")) k.video = f; else if (part.startsWith("miniatura")) k.thumb = f;
+    else if (part.startsWith("linkedin")) k.linkedin = f; else k.tiktok = f;
+  }
+  return { kits: Array.from(kits.values()).sort((a, b) => a.name.localeCompare(b.name)), loose };
+}

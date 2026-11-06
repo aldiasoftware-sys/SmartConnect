@@ -8,16 +8,20 @@ import WeeklyCheckin from "@/components/WeeklyCheckin";
 import SalesProvider from "@/lib/SalesContext";
 import SocialProvider, { useSocial } from "@/lib/SocialContext";
 import { AuthProvider, useAuth } from "@/lib/AuthContext";
-import { weekLabel, weekNumber, weekStart } from "@/lib/social";
+import ScopeProvider, { useScope } from "@/lib/ScopeContext";
+import { countdown, nextCheckinAt, weekLabel, weekNumber, weekStart } from "@/lib/social";
 import { sweep } from "@/lib/files";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 function Header() {
   const pathname = usePathname();
   const { pending, openCheckin } = useSocial();
   const { user, signOut } = useAuth();
+  const { me, scope, setScope } = useScope();
   const page = NAV_SECTIONS.flatMap((s) => s.items.map((i) => ({ ...i, section: s.title }))).find((i) => i.href === pathname);
   const w = weekStart();
+  const [, tick] = useState(0);
+  useEffect(() => { const t = setInterval(() => tick((n) => n + 1), 30000); return () => clearInterval(t); }, []);
 
   return (
     <header className="header">
@@ -25,11 +29,22 @@ function Header() {
         {page ? <>{page.section && <>{page.section} <span>/</span> </>}<b>{page.name}</b></> : <b>Aldia Smart Connect</b>}
       </div>
       <div className="header-actions">
+        {me && (
+          <div className="seg scope-seg" title="Ver lo de los dos o solo lo tuyo">
+            <button className={scope === "equipo" ? "on" : ""} onClick={() => setScope("equipo")}>Equipo</button>
+            <button className={scope === "yo" ? "on" : ""} onClick={() => setScope("yo")}>{me.name}</button>
+          </div>
+        )}
         <span className="week-chip">Semana {weekNumber(w)} · {weekLabel(w)}</span>
-        <button className="checkin-btn" onClick={() => openCheckin()} title="Apuntar seguidores y publicaciones de la semana">
-          {pending ? <span className="pulse-dot" /> : <CalendarCheck />}
-          {pending ? "Check-in pendiente" : "Check-in semanal"}
-        </button>
+        {pending ? (
+          <button className="checkin-btn" onClick={() => openCheckin()} title="Apuntar los seguidores de esta semana">
+            <span className="pulse-dot" /> Check-in pendiente
+          </button>
+        ) : (
+          <button className="checkin-btn done" onClick={() => openCheckin()} title="Check-in hecho · el próximo se abre el lunes a las 8:00">
+            <CalendarCheck /> Próximo check-in <b>{countdown(nextCheckinAt())}</b>
+          </button>
+        )}
         <div className="avatar" title={user?.email || ""} style={{ background: "var(--ink)", color: "#fff", borderColor: "var(--ink)" }}>{(user?.email || "A")[0].toUpperCase()}</div>
         <button className="checkin-btn" onClick={signOut} title="Cerrar sesión" aria-label="Cerrar sesión"><LogOut /></button>
       </div>
@@ -58,6 +73,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       </head>
       <body className="app-container">
         <AuthProvider>
+          <ScopeProvider>
           <SalesProvider>
             <SocialProvider>
               {!isAuthPage && <Sidebar />}
@@ -69,6 +85,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
               <SweepFiles />
             </SocialProvider>
           </SalesProvider>
+          </ScopeProvider>
         </AuthProvider>
       </body>
     </html>

@@ -1,8 +1,9 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useState, ReactNode } from "react";
-import { ACCOUNTS, Post, Snapshot, toISO, weekStart } from "./social";
+import { ACCOUNTS, Post, Snapshot, checkinWeek as currentCheckinWeek, toISO } from "./social";
 import { listRows, tableMode } from "./store";
+import { syncCalendarWithFiles } from "./contentSync";
 
 interface SocialContextType {
   snapshots: Snapshot[];
@@ -29,6 +30,7 @@ export default function SocialProvider({ children }: { children: ReactNode }) {
   const [checkinWeek, setCheckinWeek] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
+    await syncCalendarWithFiles();   // lo que haya entrado o salido de Archivos, al calendario
     const [s, p, m1, m2] = await Promise.all([
       listRows<Snapshot>("social_snapshots", "week_start"), listRows<Post>("content_posts", "publish_date"),
       tableMode("social_snapshots"), tableMode("content_posts"),
@@ -38,7 +40,7 @@ export default function SocialProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => { refresh(); }, [refresh]);
 
-  const thisWeek = weekStart();
+  const thisWeek = currentCheckinWeek();
   const pending = !loading && ACCOUNTS.some((a) => !snapshots.some((s) => s.account === a.id && s.week_start === thisWeek));
 
   // al abrir la app: si falta el check-in de esta semana, se pregunta (salvo que hoy se haya pospuesto)

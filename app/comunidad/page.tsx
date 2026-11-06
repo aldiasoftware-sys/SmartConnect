@@ -110,12 +110,12 @@ export default function ComunidadPage() {
             <div style={{ width: `${Math.min(100, pct(responders, SKOOL_AT))}%`, height: "100%", background: responders >= SKOOL_AT ? "var(--ok)" : "var(--ink)" }} />
           </div>
           {responders >= SKOOL_AT && <p className="chip chip-ok" style={{ marginBottom: "0.75rem" }}>Ya toca abrir Skool</p>}
-          {OWN_CHANNELS.map((c) => { const v = latestFollowers(snapshots, c.id); return (
-            <div key={c.id} className="flex items-center justify-between" style={{ padding: "0.375rem 0" }}>
-              <span className="flex items-center gap-2 text-sm"><AccountIcon account={c} size={26} /> {c.name}</span>
-              <b>{v === null ? <span className="text-muted text-xs">apúntalo en el check-in</span> : fmt(v)}</b>
-            </div>
-          ); })}
+          <div className="flex items-center justify-between text-sm" style={{ padding: "0.375rem 0" }}>
+            <span className="font-semibold">Suscritos o más arriba</span><b>{people.filter((p) => p.stage >= 4).length}</b>
+          </div>
+          <div className="flex items-center justify-between text-sm" style={{ padding: "0.375rem 0" }}>
+            <span className="font-semibold">Han pedido hablar con ALDIA</span><b>{people.filter((p) => p.stage === 6).length}</b>
+          </div>
         </div>
         <div className="card">
           <h3 className="section-title" style={{ marginBottom: 4 }}>De dónde viene</h3>

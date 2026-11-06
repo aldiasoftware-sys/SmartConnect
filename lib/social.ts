@@ -39,6 +39,17 @@ export const DIAS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sáb
 export const shortDate = (s: string) => { const d = fromISO(s); return `${d.getDate()} ${MES[d.getMonth()]}`; };
 export const weekLabel = (s: string) => `${shortDate(s)} – ${shortDate(addDays(s, 6))}`;
 export const today = () => toISO(new Date());
+
+/** El check-in se abre cada lunes a las 8:00; hasta esa hora sigue tocando el de la semana anterior. */
+export const CHECKIN_HOUR = 8;
+export const checkinWeek = (now = new Date()) => weekStart(new Date(now.getTime() - CHECKIN_HOUR * 3600000));
+export const nextCheckinAt = (now = new Date()) => { const d = fromISO(addDays(checkinWeek(now), 7)); d.setHours(CHECKIN_HOUR, 0, 0, 0); return d; };
+/** «2 d 23 h 41 min» hasta una fecha */
+export const countdown = (to: Date, now = new Date()) => {
+  const m = Math.max(0, Math.floor((to.getTime() - now.getTime()) / 60000));
+  const d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60), min = m % 60;
+  return d ? `${d} d ${h} h ${min} min` : h ? `${h} h ${min} min` : `${min} min`;
+};
 export const fmt = (n: number) => n.toLocaleString("es-ES");
 export const euros = (n: number) => `${Math.round(n).toLocaleString("es-ES")} €`;
 export const pct = (a: number, b: number) => (b ? Math.round((a / b) * 100) : 0);
@@ -47,6 +58,8 @@ export const pct = (a: number, b: number) => (b ? Math.round((a / b) * 100) : 0)
 export type Post = {
   id?: string; publish_date: string | null; platform: string; kind: string | null; owner: string | null;
   title: string; keyword?: string | null; status: string; url?: string | null; notes?: string | null;
+  /** vídeo de Archivos del que sale (persona/fecha/pieza); lo rellena la sincronización Archivos → Calendario */
+  archivo?: string | null;
 };
 export const PLATFORMS: Record<string, { label: string; color: string; soft: string }> = {
   tiktok: { label: "TikTok", color: "#fe2c55", soft: "#ffe8ed" },
@@ -57,7 +70,7 @@ export const PLATFORMS: Record<string, { label: string; color: string; soft: str
 };
 export const KINDS: Record<string, string> = {
   noticia: "Noticia de IA", automatizacion: "Automatización", tutorial: "Tutorial", caso: "Caso real",
-  post: "Post", pregunta: "Pregunta del viernes", newsletter: "Newsletter", directo: "Directo mensual", aviso: "Aviso / recurso",
+  post: "Post", video: "Vídeo", pregunta: "Pregunta del viernes", newsletter: "Newsletter", directo: "Directo mensual", aviso: "Aviso / recurso",
 };
 /** Del guion al vídeo: nosotros guion y voz, Claude monta, n8n lo deja listo para subir. */
 export const STATUSES = [

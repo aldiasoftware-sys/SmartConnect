@@ -6,6 +6,7 @@ import { useSocial } from "@/lib/SocialContext";
 import { DIAS, KINDS, PLATFORMS, Post, STATUSES, TARGETS, addDays, contentByWeek, fromISO, shortDate, statusOf, today, weekLabel, weekNumber, weekStart } from "@/lib/social";
 import { loadWeekTemplate } from "@/lib/content";
 import PostEditor from "@/components/PostEditor";
+import { useScope } from "@/lib/ScopeContext";
 
 const blank = (date: string | null, platform = "tiktok"): Post => ({ publish_date: date, platform, kind: platform === "tiktok" ? "noticia" : "post", owner: "Aldia", title: "", status: "idea" });
 
@@ -21,7 +22,10 @@ function Target({ label, done, planned, target }: { label: string; done: number;
 }
 
 export default function ContenidoPage() {
-  const { posts, refresh, local, loading } = useSocial();
+  const { posts: allPosts, refresh, local, loading } = useSocial();
+  const { me, isMine } = useScope();
+  // en el calendario cada uno ve lo que le toca subir (lo suyo y lo de la cuenta conjunta sin dueño)
+  const posts = allPosts.filter((p) => isMine(p.owner));
   const [week, setWeek] = useState(weekStart());
   const [editing, setEditing] = useState<Post | null>(null);
   const [busy, setBusy] = useState(false);
@@ -59,7 +63,7 @@ export default function ContenidoPage() {
         <div>
           <div className="eyebrow">Rutina de contenido</div>
           <h2 className="page-title">Contenido</h2>
-          <p className="page-subtitle">Qué se publica y cuándo. Grabamos en lote el fin de semana y publicamos cada día: constancia, sin obsesionarse.</p>
+          <p className="page-subtitle">{me ? <>Lo que te toca subir a ti, <b>{me.name}</b>, y lo de la cuenta conjunta.</> : "Qué se publica y cuándo."} Grabamos en lote el fin de semana y publicamos cada día.</p>
         </div>
         <div className="flex gap-3 items-center">
           <button className="btn-secondary" onClick={template} disabled={busy || loading}><Wand2 style={{ width: 16, height: 16 }} /> Cargar semana tipo</button>
@@ -69,7 +73,7 @@ export default function ContenidoPage() {
 
       {local && <div className="banner"><HardDrive /><div><b>El contenido se está guardando solo en este navegador.</b> Ejecuta <code>redes_setup.sql</code> en Supabase para compartirlo; lo que haya aquí se sube solo.</div></div>}
 
-      <div className="grid-2-1" style={{ marginBottom: "1.25rem" }}>
+      <div style={{ marginBottom: "1.25rem" }}>
         <div className="card">
           <div className="flex items-center justify-between" style={{ marginBottom: "1.25rem" }}>
             <div className="flex items-center gap-2">
@@ -92,16 +96,6 @@ export default function ContenidoPage() {
               {crowded.length > 0 && <span className="chip chip-bad">Más de una publicación el {crowded.join(", ")}: máximo una al día por red</span>}
             </div>
           )}
-        </div>
-        <div className="card dark-card">
-          <div className="eyebrow">Nuestro día a día</div>
-          {[["Nosotros", "Guion del día"], ["Nosotros", "Grabarlo en voz"], ["Claude", "Monta el vídeo con el audio"], ["Claude", "Lo guarda en la carpeta compartida"], ["n8n", "Entrega vídeo + descripción listos para subir"]].map(([who, what], i) => (
-            <div key={i} className="flex items-center gap-3" style={{ padding: "0.4rem 0", borderBottom: i < 4 ? "1px solid #24252a" : "none", fontSize: "0.8125rem" }}>
-              <span style={{ color: "#6b6f78", fontWeight: 700, width: 18 }}>0{i + 1}</span>
-              <span style={{ color: "#9a9ea6", width: 64, fontSize: "0.6875rem", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 700 }}>{who}</span>
-              <span style={{ fontWeight: 600 }}>{what}</span>
-            </div>
-          ))}
         </div>
       </div>
 
