@@ -157,7 +157,7 @@ export default function ComunidadPage() {
           <div className="dialog-overlay" onClick={() => setEditing(null)}>
             <form className="dialog" style={{ maxWidth: 600 }} onClick={(e) => e.stopPropagation()} onSubmit={(e) => { e.preventDefault(); if (editing.name.trim()) save(editing); }}>
               <div className="dialog-head">
-                <div><div className="eyebrow">{kindOf(editing.kind).label}</div><h3 style={{ fontSize: "1.25rem", fontWeight: 800, letterSpacing: "-0.03em" }}>{editing.id ? editing.name : "Nueva persona"}</h3></div>
+                <div><div className="eyebrow">{kindOf(editing.kind).label}</div><h3 style={{ fontSize: "1.25rem", fontWeight: 500, letterSpacing: "-0.03em" }}>{editing.id ? editing.name : "Nueva persona"}</h3></div>
                 <button type="button" className="icon-btn" onClick={() => setEditing(null)} aria-label="Cerrar"><X /></button>
               </div>
               <div className="dialog-body">

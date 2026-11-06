@@ -14,9 +14,9 @@ function Target({ label, done, planned, target }: { label: string; done: number;
   const slots = Math.max(target, planned);
   return (
     <div className="target">
-      <span style={{ width: 74, fontSize: "0.8125rem", fontWeight: 700 }}>{label}</span>
+      <span style={{ width: 74, fontSize: "0.8125rem", fontWeight: 600 }}>{label}</span>
       <div className="bar">{Array.from({ length: slots }, (_, i) => <i key={i} className={i < done ? "on" : ""} style={i >= target ? { opacity: 0.5 } : undefined} />)}</div>
-      <span style={{ fontSize: "0.8125rem", fontWeight: 700, minWidth: 92, textAlign: "right", color: done >= target ? "var(--ok)" : "var(--text-secondary)" }}>{done}/{target} publicados</span>
+      <span style={{ fontSize: "0.8125rem", fontWeight: 600, minWidth: 92, textAlign: "right", color: done >= target ? "var(--ok)" : "var(--text-secondary)" }}>{done}/{target} publicados</span>
     </div>
   );
 }

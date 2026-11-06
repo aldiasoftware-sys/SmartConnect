@@ -158,7 +158,7 @@ export default function SubscriptionsPage() {
         <div className="modal-overlay" onClick={closeModal}>
           <div className="modal-content drawer-in" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center" style={{ marginBottom: "2rem" }}>
-              <h3 style={{ fontSize: "1.25rem", fontWeight: 700 }}>{editingId ? "Editar Suscripción" : "Nueva Suscripción"}</h3>
+              <h3 style={{ fontSize: "1.25rem", fontWeight: 600 }}>{editingId ? "Editar Suscripción" : "Nueva Suscripción"}</h3>
               <X style={{ cursor: "pointer", width: "20px", color: "var(--text-muted)" }} onClick={closeModal} />
             </div>
             <div className="form-group"><label>Servicio</label><input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Ej: ChatGPT Plus" /></div>

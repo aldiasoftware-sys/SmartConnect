@@ -45,7 +45,7 @@ function Header() {
             <CalendarCheck /> Próximo check-in <b>{countdown(nextCheckinAt())}</b>
           </button>
         )}
-        <div className="avatar" title={user?.email || ""} style={{ background: "var(--ink)", color: "#fff", borderColor: "var(--ink)" }}>{(user?.email || "A")[0].toUpperCase()}</div>
+        <div className="avatar" title={user?.email || ""} style={{ background: "var(--brand)", color: "#fff", borderColor: "var(--brand)" }}>{(user?.email || "A")[0].toUpperCase()}</div>
         <button className="checkin-btn" onClick={signOut} title="Cerrar sesión" aria-label="Cerrar sesión"><LogOut /></button>
       </div>
     </header>

@@ -157,7 +157,7 @@ export default function PlanificacionPage() {
                   <b>{i.title}</b>
                   <small>{i.owner} · {shortDate(i.start_date)} → {shortDate(i.end_date)}</small>
                 </div>
-                <span style={{ fontSize: "0.6875rem", fontWeight: 700, color: isLate ? "var(--bad)" : i.progress === 100 ? "var(--ok)" : "var(--text-muted)" }}>{isLate ? "Tarde" : `${i.progress}%`}</span>
+                <span style={{ fontSize: "0.6875rem", fontWeight: 600, color: isLate ? "var(--bad)" : i.progress === 100 ? "var(--ok)" : "var(--text-muted)" }}>{isLate ? "Tarde" : `${i.progress}%`}</span>
               </div>
             );
           })}
@@ -215,7 +215,7 @@ export default function PlanificacionPage() {
           <form className="dialog" style={{ maxWidth: 520 }} onClick={(e) => e.stopPropagation()} onSubmit={submit}>
             <div className="dialog-head">
               <div>
-                <h3 style={{ fontSize: "1.25rem", fontWeight: 800, letterSpacing: "-0.03em" }}>{editing.id ? "Editar tarea" : "Nueva tarea"}</h3>
+                <h3 style={{ fontSize: "1.25rem", fontWeight: 500, letterSpacing: "-0.03em" }}>{editing.id ? "Editar tarea" : "Nueva tarea"}</h3>
                 <p className="section-sub">Aparece como una barra en el Gantt.</p>
               </div>
               <button type="button" className="icon-btn" onClick={() => setEditing(null)} aria-label="Cerrar"><X /></button>

@@ -57,7 +57,7 @@ export function LineChart({ weeks, lines, height = 260 }: { weeks: string[]; lin
       {hover !== null && (
         <div style={{ position: "absolute", top: 8, left: `${(x(hover) / W) * 100}%`, transform: `translateX(${hover > weeks.length / 2 ? "calc(-100% - 14px)" : "14px"})`,
           background: "#0e0e0e", color: "#fff", borderRadius: 12, padding: "0.625rem 0.75rem", fontSize: "0.75rem", pointerEvents: "none", minWidth: 170, boxShadow: "var(--shadow-lg)" }}>
-          <div style={{ fontWeight: 700, marginBottom: 6 }}>Semana {weekNumber(weeks[hover])} · {weekLabel(weeks[hover])}</div>
+          <div style={{ fontWeight: 600, marginBottom: 6 }}>Semana {weekNumber(weeks[hover])} · {weekLabel(weeks[hover])}</div>
           {lines.map((l) => (
             <div key={l.id} style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
               <span style={{ display: "flex", alignItems: "center", gap: 6, color: "#c9ccd2" }}><i style={{ width: 7, height: 7, borderRadius: 9, background: l.color, display: "inline-block" }} />{l.label}</span>
@@ -94,7 +94,7 @@ export function PostsBars({ rows }: { rows: { week: string; planned: number; pub
       {rows.map((r) => (
         <div key={r.week} title={`Semana ${weekNumber(r.week)}: ${r.reviewed ? `${r.published} de ${r.planned}` : `${r.planned} planificadas (sin revisar)`}`}
           style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 6, height: "100%", justifyContent: "flex-end", minWidth: 0 }}>
-          <span style={{ fontSize: 10, fontWeight: 700, color: r.failed ? "var(--bad)" : "var(--text-secondary)" }}>{r.reviewed ? `${r.published}/${r.planned}` : r.planned ? `${r.planned}` : ""}</span>
+          <span style={{ fontSize: 10, fontWeight: 600, color: r.failed ? "var(--bad)" : "var(--text-secondary)" }}>{r.reviewed ? `${r.published}/${r.planned}` : r.planned ? `${r.planned}` : ""}</span>
           <div style={{ display: "flex", gap: 3, alignItems: "flex-end", height: 130, width: "100%", justifyContent: "center" }}>
             <div style={{ width: "42%", maxWidth: 22, height: `${(r.planned / max) * 100}%`, minHeight: r.planned ? 4 : 0, background: "#e3e6eb", borderRadius: "6px 6px 2px 2px" }} />
             <div style={{ width: "42%", maxWidth: 22, height: `${(r.published / max) * 100}%`, minHeight: r.published ? 4 : 0,

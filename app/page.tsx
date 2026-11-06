@@ -128,7 +128,7 @@ export default function EstaSemanaPage() {
             {waiting.slice(0, 4).map((p) => { const h = hoursWaiting(p); return (
               <div key={p.id} className="flex justify-between text-sm" style={{ padding: "0.3rem 0" }}>
                 <span className="font-semibold">{p.name} <span className="text-muted font-medium">· {p.origin}</span></span>
-                <span style={{ color: h > 24 ? "var(--bad)" : "var(--text-muted)", fontWeight: 700 }}>{h < 24 ? `${Math.floor(h)} h` : `${Math.floor(h / 24)} d`}</span>
+                <span style={{ color: h > 24 ? "var(--bad)" : "var(--text-muted)", fontWeight: 600 }}>{h < 24 ? `${Math.floor(h)} h` : `${Math.floor(h / 24)} d`}</span>
               </div>
             ); })}
             {waiting.length > 0 && <Link href="/comunidad" className="text-sm font-semibold" style={{ color: "var(--ink)" }}>Ir a comunidad →</Link>}

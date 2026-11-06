@@ -154,7 +154,7 @@ export default function TeamPage() {
         <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
           <div className="modal-content drawer-in" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center" style={{ marginBottom: "2rem" }}>
-              <h3 style={{ fontSize: "1.25rem", fontWeight: 700 }}>Añadir Persona</h3>
+              <h3 style={{ fontSize: "1.25rem", fontWeight: 600 }}>Añadir Persona</h3>
               <X style={{ cursor: "pointer", width: "20px", color: "var(--text-muted)" }} onClick={() => setIsModalOpen(false)} />
             </div>
             <div className="form-group">

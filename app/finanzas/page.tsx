@@ -75,16 +75,16 @@ export default function SalesPage() {
       {/* Summary cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1.5rem", marginBottom: "2.5rem" }}>
         <div className="card">
-          <p style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "0.75rem" }}>MRR Activo</p>
-          <p style={{ fontSize: "1.875rem", fontWeight: 700, letterSpacing: "-0.04em" }}>€{totalMRR.toLocaleString()}</p>
+          <p style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "0.75rem" }}>MRR Activo</p>
+          <p style={{ fontSize: "1.875rem", fontWeight: 600, letterSpacing: "-0.04em" }}>€{totalMRR.toLocaleString()}</p>
         </div>
         <div className="card">
-          <p style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "0.75rem" }}>Setup Cobrado</p>
-          <p style={{ fontSize: "1.875rem", fontWeight: 700, letterSpacing: "-0.04em" }}>€{totalSetup.toLocaleString()}</p>
+          <p style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "0.75rem" }}>Setup Cobrado</p>
+          <p style={{ fontSize: "1.875rem", fontWeight: 600, letterSpacing: "-0.04em" }}>€{totalSetup.toLocaleString()}</p>
         </div>
         <div className="card">
-          <p style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "0.75rem" }}>Clientes Activos</p>
-          <p style={{ fontSize: "1.875rem", fontWeight: 700, letterSpacing: "-0.04em" }}>{sales.filter(s => s.status === "pagado").length}</p>
+          <p style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "0.75rem" }}>Clientes Activos</p>
+          <p style={{ fontSize: "1.875rem", fontWeight: 600, letterSpacing: "-0.04em" }}>{sales.filter(s => s.status === "pagado").length}</p>
         </div>
       </div>
 
@@ -157,7 +157,7 @@ export default function SalesPage() {
         <div className="modal-overlay" onClick={closeModal}>
           <div className="modal-content drawer-in" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center" style={{ marginBottom: "2rem" }}>
-              <h3 style={{ fontSize: "1.25rem", fontWeight: 700 }}>{editingId ? "Editar Cliente" : "Nuevo Cliente"}</h3>
+              <h3 style={{ fontSize: "1.25rem", fontWeight: 600 }}>{editingId ? "Editar Cliente" : "Nuevo Cliente"}</h3>
               <X style={{ cursor: "pointer", width: "20px", color: "var(--text-muted)" }} onClick={closeModal} />
             </div>
             <div className="form-group"><label>Nombre del Cliente</label><input value={form.client} onChange={(e) => setForm({ ...form, client: e.target.value })} placeholder="Ej: Acme Corp" /></div>

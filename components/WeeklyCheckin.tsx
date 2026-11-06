@@ -83,7 +83,7 @@ export default function WeeklyCheckin() {
           <div className="dialog-head">
             <div>
               <span className="chip" style={{ marginBottom: "0.75rem" }}><CalendarCheck style={{ width: 13, height: 13 }} /> Semana {weekNumber(week)} · {weekLabel(week)}</span>
-              <h3 style={{ fontSize: "1.375rem", fontWeight: 800, letterSpacing: "-0.03em" }}>Check-in semanal</h3>
+              <h3 style={{ fontSize: "1.375rem", fontWeight: 500, letterSpacing: "-0.03em" }}>Check-in semanal</h3>
               <p className="section-sub">Un minuto: cuánto crecemos y si cumplimos la rutina (3 TikToks y 2 posts de LinkedIn).</p>
             </div>
             <button className="icon-btn" onClick={() => closeCheckin(true)} aria-label="Cerrar"><X /></button>

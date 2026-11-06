@@ -95,7 +95,7 @@ export default function RedesPage() {
       {!loading && !d.has && (
         <div className="card" style={{ marginBottom: "1.5rem", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1.5rem", background: "var(--ink)", color: "#fff", border: "none" }}>
           <div>
-            <h3 style={{ fontSize: "1.25rem", fontWeight: 800, letterSpacing: "-0.03em", marginBottom: 4 }}>Empieza con el primer check-in</h3>
+            <h3 style={{ fontSize: "1.25rem", fontWeight: 500, letterSpacing: "-0.03em", marginBottom: 4 }}>Empieza con el primer check-in</h3>
             <p style={{ color: "#b9bcc4", fontSize: "0.875rem" }}>Apunta los seguidores de hoy. Cada lunes la app os lo volverá a preguntar; las publicaciones salen del calendario de contenido.</p>
           </div>
           <button className="btn-secondary" onClick={() => openCheckin()}>Hacer check-in</button>
@@ -154,7 +154,7 @@ export default function RedesPage() {
                 </div>
                 <div style={{ textAlign: "right" }}>
                   <div className="ci-mini">En el calendario</div>
-                  <div style={{ fontWeight: 800, fontSize: "1.125rem" }}>{plan.length ? `${plan.filter((p) => p.status === "publicado").length}/${plan.length} ${a.platform === "tiktok" ? "vídeos" : "posts"}` : "—"}</div>
+                  <div style={{ fontWeight: 500, fontSize: "1.125rem" }}>{plan.length ? `${plan.filter((p) => p.status === "publicado").length}/${plan.length} ${a.platform === "tiktok" ? "vídeos" : "posts"}` : "—"}</div>
                   <div className="section-sub">{accPosts.length ? `${accPct}% cumplido` : "sin historial"}</div>
                 </div>
               </div>
@@ -191,7 +191,7 @@ export default function RedesPage() {
               {d.fails.map((f) => (
                 <div key={f.id} className="flex items-center justify-between" style={{ fontSize: "0.8125rem", padding: "0.3rem 0", gap: 8 }}>
                   <span className="flex items-center gap-2" style={{ minWidth: 0 }}><i style={{ width: 8, height: 8, borderRadius: 9, background: PLATFORMS[f.platform].color, flexShrink: 0 }} /><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{PLATFORMS[f.platform].label} · {KINDS[f.kind || ""] || f.title}</span></span>
-                  <span style={{ color: "var(--bad)", fontWeight: 700, whiteSpace: "nowrap" }}>{shortDate(f.publish_date!)}</span>
+                  <span style={{ color: "var(--bad)", fontWeight: 600, whiteSpace: "nowrap" }}>{shortDate(f.publish_date!)}</span>
                 </div>
               ))}
             </div>
@@ -225,9 +225,9 @@ export default function RedesPage() {
                   <td><b>S{weekNumber(w)}</b> <span className="text-muted text-xs">{weekLabel(w)}</span>{w === d.thisWeek && <span className="chip" style={{ marginLeft: 8 }}>Esta semana</span>}</td>
                   {ACCOUNTS.map((a) => {
                     const v = own(a.id); const prev = i > 0 ? d.series[a.id][i - 1] : null;
-                    return <td key={a.id} style={{ fontVariantNumeric: "tabular-nums" }}>{v ? <>{fmt(v.followers)} {prev !== null && <span style={{ fontSize: "0.75rem", fontWeight: 700, color: v.followers - prev >= 0 ? "var(--ok)" : "var(--bad)" }}>{v.followers - prev >= 0 ? "+" : ""}{fmt(v.followers - prev)}</span>}</> : <span className="text-muted">—</span>}</td>;
+                    return <td key={a.id} style={{ fontVariantNumeric: "tabular-nums" }}>{v ? <>{fmt(v.followers)} {prev !== null && <span style={{ fontSize: "0.75rem", fontWeight: 600, color: v.followers - prev >= 0 ? "var(--ok)" : "var(--bad)" }}>{v.followers - prev >= 0 ? "+" : ""}{fmt(v.followers - prev)}</span>}</> : <span className="text-muted">—</span>}</td>;
                   })}
-                  <td style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{snapshots.some((s) => s.week_start === w) ? fmt(d.total[i]) : <span className="text-muted">—</span>}</td>
+                  <td style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{snapshots.some((s) => s.week_start === w) ? fmt(d.total[i]) : <span className="text-muted">—</span>}</td>
                   <td>{!p.planned ? <span className="text-muted">—</span> : !p.reviewed ? <span className="chip">{p.planned} planificadas</span>
                     : <span className={`chip ${metMinimum(p) ? "chip-ok" : "chip-bad"}`}>TikTok {p.tiktok}/{TARGETS.tiktok} · LinkedIn {p.linkedin}/{TARGETS.linkedin}{p.failed ? ` · ${p.failed} sin publicar` : ""}</span>}</td>
                   <td style={{ textAlign: "right" }}><button className="icon-btn" onClick={() => openCheckin(w)} aria-label={`Editar semana ${weekNumber(w)}`}><Pencil /></button></td>

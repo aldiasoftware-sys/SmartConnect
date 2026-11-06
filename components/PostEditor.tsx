@@ -36,7 +36,7 @@ export default function PostEditor({ post, onClose, onSaved }: { post: Post; onC
           <div className="dialog-head">
             <div>
               <div className="eyebrow">{PLATFORMS[p.platform]?.label} · {KINDS[p.kind || ""] || "Pieza"}</div>
-              <h3 style={{ fontSize: "1.25rem", fontWeight: 800, letterSpacing: "-0.03em" }}>{p.id ? "Editar pieza" : "Nueva pieza"}</h3>
+              <h3 style={{ fontSize: "1.25rem", fontWeight: 500, letterSpacing: "-0.03em" }}>{p.id ? "Editar pieza" : "Nueva pieza"}</h3>
             </div>
             <button type="button" className="icon-btn" onClick={onClose} aria-label="Cerrar"><X /></button>
           </div>

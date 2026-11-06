@@ -1,7 +1,7 @@
 /* Login partido: marca con aurora a la izquierda, acceso a la derecha. Estilo aldiaproject.es. */
 .page {
-  --g: #00ff88;
-  --ink: #0e0e0e;
+  --g: #5b8cff;
+  --ink: #0b1324;
   --muted: #6b7079;
   --line: #e7e9ee;
   display: grid;
@@ -17,7 +17,7 @@
 .brand {
   position: relative;
   overflow: hidden;
-  background: #0b0c0c;
+  background: #0a1633;
   color: #fff;
   padding: 44px 52px;
   display: flex;
@@ -29,17 +29,17 @@
 .aurora span { position: absolute; border-radius: 50%; mix-blend-mode: screen; }
 .blobA {
   width: 62%; aspect-ratio: 1; left: -12%; bottom: -22%;
-  background: radial-gradient(circle, rgba(0, 255, 136, 0.75), transparent 65%);
+  background: radial-gradient(circle, rgba(91, 140, 255, 0.75), transparent 65%);
   animation: driftA 16s ease-in-out infinite alternate;
 }
 .blobB {
   width: 55%; aspect-ratio: 1; right: -14%; top: -18%;
-  background: radial-gradient(circle, rgba(0, 196, 255, 0.45), transparent 65%);
+  background: radial-gradient(circle, rgba(30, 58, 138, 0.45), transparent 65%);
   animation: driftB 19s ease-in-out infinite alternate;
 }
 .blobC {
   width: 40%; aspect-ratio: 1; left: 38%; top: 34%;
-  background: radial-gradient(circle, rgba(170, 255, 214, 0.35), transparent 65%);
+  background: radial-gradient(circle, rgba(190, 210, 255, 0.35), transparent 65%);
   animation: driftC 13s ease-in-out infinite alternate;
 }
 @keyframes driftA { to { transform: translate(18%, -16%) scale(1.15); } }
@@ -60,7 +60,7 @@
 
 .brandTop {
   display: flex; align-items: center; gap: 12px;
-  font-size: 12px; font-weight: 700; letter-spacing: 0.22em;
+  font-size: 12px; font-weight: 600; letter-spacing: 0.22em;
   animation: rise 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 .mark { height: 30px; width: auto; filter: invert(1); }
@@ -69,7 +69,7 @@
   font-size: clamp(44px, 5.6vw, 86px);
   line-height: 0.98;
   letter-spacing: -0.055em;
-  font-weight: 800;
+  font-weight: 500;
   max-width: 11ch;
   animation: rise 0.9s 0.1s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
@@ -87,12 +87,12 @@
 }
 .dot {
   width: 8px; height: 8px; border-radius: 50%; background: var(--g);
-  box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.6);
+  box-shadow: 0 0 0 0 rgba(91, 140, 255, 0.6);
   animation: pulse 2.2s infinite;
 }
 @keyframes pulse {
-  70% { box-shadow: 0 0 0 10px rgba(0, 255, 136, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0); }
+  70% { box-shadow: 0 0 0 10px rgba(91, 140, 255, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(91, 140, 255, 0); }
 }
 
 /* ---------- Acceso ---------- */
@@ -100,7 +100,7 @@
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   padding: 48px 32px 28px;
   background:
-    radial-gradient(600px 300px at 100% 0%, rgba(0, 255, 136, 0.07), transparent 70%),
+    radial-gradient(600px 300px at 100% 0%, rgba(91, 140, 255, 0.07), transparent 70%),
     #fff;
 }
 .card { width: 100%; max-width: 420px; flex: 1; display: flex; flex-direction: column; justify-content: center; }
@@ -108,10 +108,10 @@
 .step { animation: rise 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 
 .eyebrow {
-  font-size: 12px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
+  font-size: 12px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase;
   color: var(--muted); margin-bottom: 8px;
 }
-.title { font-size: 34px; font-weight: 800; letter-spacing: -0.04em; line-height: 1.05; }
+.title { font-size: 34px; font-weight: 500; letter-spacing: -0.04em; line-height: 1.05; }
 
 .people { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; margin: 32px 0 26px; }
 .person {
@@ -142,15 +142,15 @@
   display: grid; place-items: center;
   width: 54px; height: 54px; border-radius: 16px;
   background: var(--ink); color: #fff;
-  font-size: 22px; font-weight: 800; letter-spacing: -0.02em;
+  font-size: 22px; font-weight: 500; letter-spacing: -0.02em;
   position: relative; overflow: hidden;
 }
 .avatar::before {
   content: ""; position: absolute; inset: auto -30% -60% -30%; height: 80%;
-  background: radial-gradient(circle, rgba(0, 255, 136, 0.55), transparent 70%);
+  background: radial-gradient(circle, rgba(91, 140, 255, 0.55), transparent 70%);
 }
 .avatarLg { width: 64px; height: 64px; border-radius: 20px; font-size: 26px; flex-shrink: 0; }
-.personName { font-size: 20px; font-weight: 800; letter-spacing: -0.03em; }
+.personName { font-size: 20px; font-weight: 500; letter-spacing: -0.03em; }
 .personGo {
   display: inline-flex; align-items: center; gap: 6px;
   font-size: 13px; font-weight: 600; color: var(--muted);
@@ -176,7 +176,7 @@
   border: 1.5px solid var(--line); border-radius: 14px; background: #fafbfc;
   transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
 }
-.field:focus-within { border-color: var(--ink); background: #fff; box-shadow: 0 0 0 4px rgba(0, 255, 136, 0.18); }
+.field:focus-within { border-color: var(--ink); background: #fff; box-shadow: 0 0 0 4px rgba(91, 140, 255, 0.18); }
 .field input {
   flex: 1; min-width: 0; border: 0; outline: 0; background: transparent;
   padding: 16px 18px; font: inherit; font-size: 16px; letter-spacing: 0.02em; color: var(--ink);
@@ -195,7 +195,7 @@
   margin-top: 22px; width: 100%; height: 54px;
   display: inline-flex; align-items: center; justify-content: center; gap: 10px;
   border: 0; border-radius: 14px; background: var(--ink); color: #fff;
-  font: inherit; font-size: 15px; font-weight: 700; cursor: pointer;
+  font: inherit; font-size: 15px; font-weight: 600; cursor: pointer;
   transition: transform 0.15s, box-shadow 0.25s, opacity 0.2s;
 }
 .submit:hover:not(:disabled) { box-shadow: 0 14px 30px -12px rgba(14, 14, 14, 0.5), inset 0 -3px 0 var(--g); }

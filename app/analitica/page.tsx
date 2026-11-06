@@ -51,10 +51,10 @@ export default function AnalyticsPage() {
         {stats.map((s, i) => (
           <div key={i} className="card">
             <div className="flex justify-between items-start" style={{ marginBottom: "1.25rem" }}>
-              <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.07em" }}>{s.label}</span>
+              <span style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.07em" }}>{s.label}</span>
               <s.icon style={{ width: "16px", color: "var(--text-muted)", flexShrink: 0 }} />
             </div>
-            <p style={{ fontSize: "2rem", fontWeight: 700, letterSpacing: "-0.04em", marginBottom: "0.35rem" }}>{s.val}</p>
+            <p style={{ fontSize: "2rem", fontWeight: 600, letterSpacing: "-0.04em", marginBottom: "0.35rem" }}>{s.val}</p>
             <p style={{ fontSize: "0.8125rem", color: "var(--text-secondary)" }}>{s.sub}</p>
           </div>
         ))}
@@ -63,7 +63,7 @@ export default function AnalyticsPage() {
       <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "1.5rem", marginBottom: "1.5rem" }}>
         {/* MRR per client bar chart */}
         <div className="card">
-          <h3 style={{ fontWeight: 700, marginBottom: "0.375rem" }}>MRR por Cliente</h3>
+          <h3 style={{ fontWeight: 600, marginBottom: "0.375rem" }}>MRR por Cliente</h3>
           <p style={{ fontSize: "0.8125rem", color: "var(--text-secondary)", marginBottom: "2rem" }}>Ingresos recurrentes mensuales por cliente activo</p>
           {paidSales.length === 0 ? (
             <div style={{ height: "180px", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-muted)", fontSize: "0.875rem" }}>
@@ -73,7 +73,7 @@ export default function AnalyticsPage() {
             <div style={{ display: "flex", alignItems: "flex-end", gap: "16px", height: "180px" }}>
               {paidSales.map((s, i) => (
                 <div key={s.id} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "8px", justifyContent: "flex-end", height: "100%" }}>
-                  <span style={{ fontSize: "10px", fontWeight: 700, color: "var(--text-secondary)" }}>€{s.monthly}</span>
+                  <span style={{ fontSize: "10px", fontWeight: 600, color: "var(--text-secondary)" }}>€{s.monthly}</span>
                   <div style={{ width: "100%", height: `${(Number(s.monthly) / maxMRR) * 140}px`, background: i === paidSales.length - 1 ? "#111827" : "#f3f4f6", borderRadius: "6px 6px 0 0", minHeight: "8px" }} />
                   <span style={{ fontSize: "10px", fontWeight: 600, color: "var(--text-muted)", textAlign: "center", maxWidth: "70px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.client}</span>
                 </div>
@@ -84,7 +84,7 @@ export default function AnalyticsPage() {
 
         {/* Status donut / breakdown */}
         <div className="card">
-          <h3 style={{ fontWeight: 700, marginBottom: "2rem" }}>Distribución de Clientes</h3>
+          <h3 style={{ fontWeight: 600, marginBottom: "2rem" }}>Distribución de Clientes</h3>
           <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
             {[
               { label: "Cobrados", pct: pctActive, color: "#10b981", count: activeClients },
@@ -94,7 +94,7 @@ export default function AnalyticsPage() {
               <div key={i}>
                 <div className="flex justify-between items-center" style={{ marginBottom: "6px" }}>
                   <span style={{ fontSize: "0.8125rem", fontWeight: 600 }}>{d.label}</span>
-                  <span style={{ fontSize: "0.8125rem", fontWeight: 700, color: "var(--text-muted)" }}>{d.count} ({d.pct}%)</span>
+                  <span style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--text-muted)" }}>{d.count} ({d.pct}%)</span>
                 </div>
                 <div style={{ height: "6px", background: "#f3f4f6", borderRadius: "99px", overflow: "hidden" }}>
                   <div style={{ width: `${d.pct}%`, height: "100%", background: d.color, borderRadius: "99px", transition: "width 0.8s ease" }} />
@@ -108,7 +108,7 @@ export default function AnalyticsPage() {
       {/* Fibonacci projection */}
       <div className="card">
         <div className="flex justify-between items-center" style={{ marginBottom: "0.375rem" }}>
-          <h3 style={{ fontWeight: 700 }}>Proyección de Crecimiento (Fibonacci)</h3>
+          <h3 style={{ fontWeight: 600 }}>Proyección de Crecimiento (Fibonacci)</h3>
           <span className="status-badge done" style={{ margin: 0 }}>Basado en clientes activos</span>
         </div>
         <p style={{ fontSize: "0.8125rem", color: "var(--text-secondary)", marginBottom: "2rem" }}>
@@ -118,7 +118,7 @@ export default function AnalyticsPage() {
           {fib.map((val, i) => (
             <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "8px", justifyContent: "flex-end", height: "100%" }}>
               <div style={{ width: "100%", height: `${(val / maxFib) * 130}px`, background: i === fib.length - 1 ? "#111827" : "#f3f4f6", borderRadius: "6px 6px 0 0", minHeight: "4px" }} />
-              <span style={{ fontSize: "10px", fontWeight: 700, color: "var(--text-muted)" }}>{val}</span>
+              <span style={{ fontSize: "10px", fontWeight: 600, color: "var(--text-muted)" }}>{val}</span>
             </div>
           ))}
         </div>

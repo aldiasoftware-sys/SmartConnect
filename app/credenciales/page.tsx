@@ -114,12 +114,12 @@ export default function CredentialsPage() {
                   <button onClick={() => handleDelete(cred.id)} style={{ background: "transparent", border: "none", cursor: "pointer", color: "#ef4444" }}><Trash2 style={{ width: "16px" }} /></button>
                 </div>
               </div>
-              <h3 style={{ fontWeight: 700, marginBottom: "1rem", fontSize: "1rem" }}>{cred.name}</h3>
+              <h3 style={{ fontWeight: 600, marginBottom: "1rem", fontSize: "1rem" }}>{cred.name}</h3>
               
               <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
                 <div style={{ background: "var(--bg-secondary)", padding: "0.75rem", borderRadius: "8px", display: "flex", justifyContent: "between", alignItems: "center" }}>
                   <div style={{ overflow: "hidden" }}>
-                    <p style={{ fontSize: "10px", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Email / Usuario</p>
+                    <p style={{ fontSize: "10px", fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase" }}>Email / Usuario</p>
                     <p style={{ fontSize: "13px", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{cred.user}</p>
                   </div>
                   <button onClick={() => copyToClipboard(cred.user)} style={{ marginLeft: "auto", background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)" }}><Copy style={{ width: "14px" }} /></button>
@@ -127,7 +127,7 @@ export default function CredentialsPage() {
                 
                 <div style={{ background: "var(--bg-secondary)", padding: "0.75rem", borderRadius: "8px", display: "flex", justifyContent: "between", alignItems: "center" }}>
                   <div>
-                    <p style={{ fontSize: "10px", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Contraseña</p>
+                    <p style={{ fontSize: "10px", fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase" }}>Contraseña</p>
                     <p style={{ fontSize: "13px", fontWeight: 600 }}>••••••••••••</p>
                   </div>
                   <button onClick={() => copyToClipboard(cred.pass)} style={{ marginLeft: "auto", background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)" }}><Copy style={{ width: "14px" }} /></button>
@@ -141,7 +141,7 @@ export default function CredentialsPage() {
         <div className="modal-overlay" onClick={closeModal}>
           <div className="modal-content drawer-in" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center" style={{ marginBottom: "2rem" }}>
-              <h3 style={{ fontSize: "1.25rem", fontWeight: 700 }}>{editingId ? "Editar Credencial" : "Nueva Credencial"}</h3>
+              <h3 style={{ fontSize: "1.25rem", fontWeight: 600 }}>{editingId ? "Editar Credencial" : "Nueva Credencial"}</h3>
               <X style={{ cursor: "pointer", width: "20px", color: "var(--text-muted)" }} onClick={closeModal} />
             </div>
             <div className="form-group"><label>Nombre del Servicio</label><input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Ej: Supabase Dashboard" /></div>

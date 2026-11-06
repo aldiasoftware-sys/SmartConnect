@@ -319,7 +319,7 @@ export default function ClientesPage() {
                     {selectedMessage.nombre_cliente.charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <h2 style={{ fontSize: '1.5rem', fontWeight: 700 }}>{selectedMessage.nombre_cliente}</h2>
+                    <h2 style={{ fontSize: '1.5rem', fontWeight: 600 }}>{selectedMessage.nombre_cliente}</h2>
                     <p className="text-sm text-muted">Recibido el {new Date(selectedMessage.created_at).toLocaleString()}</p>
                   </div>
                </div>

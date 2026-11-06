@@ -64,7 +64,7 @@ export default function OfertasPage() {
           return (
             <div key={k} className={`card ${i === 0 ? "dark-card" : ""}`}>
               <div className="eyebrow">0{i + 1} · {tier.sub}</div>
-              <h3 style={{ fontSize: "1.25rem", fontWeight: 800, letterSpacing: "-0.03em", marginBottom: 6 }}>{tier.label}</h3>
+              <h3 style={{ fontSize: "1.25rem", fontWeight: 500, letterSpacing: "-0.03em", marginBottom: 6 }}>{tier.label}</h3>
               <p className="section-sub" style={{ marginBottom: "0.875rem" }}>{tier.price}</p>
               <div className="flex justify-between items-center" style={{ fontSize: "0.8125rem" }}>
                 <span style={{ color: i === 0 ? "#9a9ea6" : "var(--text-secondary)" }}>Siguiente: {tier.next}</span>
@@ -80,7 +80,7 @@ export default function OfertasPage() {
           const col = offers.filter((o) => o.status === s.id);
           return (
             <div key={s.id} className="pipe-col">
-              <div className="column-header" style={{ margin: "0.125rem 0.25rem 0.375rem" }}><span className="st-dot" style={{ textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 700 }}><i style={{ background: s.color }} />{s.label}</span><span className="count-badge">{col.length}</span></div>
+              <div className="column-header" style={{ margin: "0.125rem 0.25rem 0.375rem" }}><span className="st-dot" style={{ textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600 }}><i style={{ background: s.color }} />{s.label}</span><span className="count-badge">{col.length}</span></div>
               {col.map((o) => (
                 <button key={o.id} className="post-card" style={{ borderLeftColor: s.color, padding: "0.75rem" }} onClick={() => setEditing(o)}>
                   <div className="pc-top"><span>{TIERS[o.tier]?.label}</span>{o.next_date && <span style={{ color: o.next_date < t && OPEN_OFFER(o) ? "var(--bad)" : undefined }}>{shortDate(o.next_date)}</span>}</div>
@@ -141,7 +141,7 @@ export default function OfertasPage() {
           <div className="dialog-overlay" onClick={() => setEditing(null)}>
             <form className="dialog" style={{ maxWidth: 600 }} onClick={(e) => e.stopPropagation()} onSubmit={(e) => { e.preventDefault(); if (editing.client.trim()) save(editing); }}>
               <div className="dialog-head">
-                <div><div className="eyebrow">{TIERS[editing.tier]?.label}</div><h3 style={{ fontSize: "1.25rem", fontWeight: 800, letterSpacing: "-0.03em" }}>{editing.id ? editing.client : "Nueva oferta"}</h3></div>
+                <div><div className="eyebrow">{TIERS[editing.tier]?.label}</div><h3 style={{ fontSize: "1.25rem", fontWeight: 500, letterSpacing: "-0.03em" }}>{editing.id ? editing.client : "Nueva oferta"}</h3></div>
                 <button type="button" className="icon-btn" onClick={() => setEditing(null)} aria-label="Cerrar"><X /></button>
               </div>
               <div className="dialog-body">

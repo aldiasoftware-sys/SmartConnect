@@ -92,7 +92,7 @@ export default function ArchivosPage() {
               <button key={p} className="card folder-card" onClick={() => setPerson(p)}>
                 <span className="person-ini">{p[0]}</span>
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: "1.25rem", fontWeight: 800, letterSpacing: "-0.03em" }}>{p}</div>
+                  <div style={{ fontSize: "1.25rem", fontWeight: 500, letterSpacing: "-0.03em" }}>{p}</div>
                   <div className="section-sub">
                     {mine.length ? `${groupKits(mine).kits.length} ${groupKits(mine).kits.length === 1 ? "vídeo" : "vídeos"} · ${fmtSize(mine.reduce((s, f) => s + f.size, 0))}` : "Vacío"}
                     {last ? ` · último ${dayLabel(last)}` : ""}
