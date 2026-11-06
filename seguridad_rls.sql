@@ -6,7 +6,7 @@
 -- leer y escribir todas las tablas, credenciales incluidas.
 -- Ahora: solo usuarios con sesión iniciada Y cuyo email esté en team_access.
 --
--- ANTES DE EJECUTAR: cambia los dos emails del paso 1 por los de Guille y Millán
+-- Emails del equipo en el paso 1 (Guille = aldiasoftware@gmail.com, Millán)
 -- (los mismos con los que se crearán las cuentas en Authentication → Users).
 -- =====================================================================
 
@@ -17,8 +17,8 @@ CREATE TABLE IF NOT EXISTS team_access (
 ALTER TABLE team_access ENABLE ROW LEVEL SECURITY;
 
 INSERT INTO team_access (email) VALUES
-  ('EMAIL_DE_GUILLE'),
-  ('EMAIL_DE_MILLAN')
+  ('aldiasoftware@gmail.com'),
+  ('alexmiher2017@gmail.com')
 ON CONFLICT DO NOTHING;
 
 -- 2. ¿El usuario de la petición es del equipo?
