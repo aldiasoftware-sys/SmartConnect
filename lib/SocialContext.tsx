@@ -2,7 +2,8 @@
 
 import { createContext, useCallback, useContext, useEffect, useState, ReactNode } from "react";
 import { ACCOUNTS, Post, Snapshot, checkinWeek as currentCheckinWeek, toISO } from "./social";
-import { listRows, tableMode } from "./store";
+import { listRows, resetTableModes, tableMode } from "./store";
+import { useAuth } from "./AuthContext";
 import { syncCalendarWithFiles } from "./contentSync";
 
 interface SocialContextType {
@@ -38,7 +39,9 @@ export default function SocialProvider({ children }: { children: ReactNode }) {
     setSnapshots(s); setPosts(p); setLocal(m1 === "local" || m2 === "local"); setLoading(false);
   }, []);
 
-  useEffect(() => { refresh(); }, [refresh]);
+  // los datos se cargan con la sesión iniciada (antes de entrar Supabase no devuelve nada)
+  const { user } = useAuth();
+  useEffect(() => { resetTableModes(); if (user) refresh(); }, [user?.id, refresh]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const thisWeek = currentCheckinWeek();
   const pending = !loading && ACCOUNTS.some((a) => !snapshots.some((s) => s.account === a.id && s.week_start === thisWeek));

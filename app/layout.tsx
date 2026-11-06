@@ -54,10 +54,12 @@ function Header() {
 
 /** Barrido de Archivos al abrir la app: borra lo que ya ha cumplido sus 14 días (una vez por sesión). */
 function SweepFiles() {
+  const { user } = useAuth();
   useEffect(() => {
+    if (!user) return;   // con sesión: sin ella Supabase no deja ver los archivos
     try { if (sessionStorage.getItem("aldia_swept")) return; sessionStorage.setItem("aldia_swept", "1"); } catch { /* sin almacenamiento */ }
     sweep().catch(() => { /* aún no existe el espacio de archivos */ });
-  }, []);
+  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   return null;
 }
 

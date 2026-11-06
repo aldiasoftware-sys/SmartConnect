@@ -18,6 +18,8 @@ const modes = new Map<Table, Promise<"supabase" | "local">>();
 export function tableMode(t: Table) {
   if (!modes.has(t)) modes.set(t, (async () => {
     const { error } = await supabase.from(t).select("*").limit(1);
+    // solo «no existe la tabla» pasa a guardar en el navegador; un «sin permiso» (no hay sesión) no
+    if (error && !/42P01|PGRST205|PGRST204|could not find the table|does not exist/i.test(`${error.code} ${error.message}`)) { modes.delete(t); return "supabase"; }
     if (error) return "local";
     const rows = readLocal<Record<string, unknown>>(t);
     if (rows.length) {
@@ -29,6 +31,9 @@ export function tableMode(t: Table) {
   })());
   return modes.get(t)!;
 }
+
+/** Al entrar o salir de la sesión se vuelve a comprobar cada tabla. */
+export const resetTableModes = () => modes.clear();
 
 export async function listRows<T>(t: Table, order?: string): Promise<T[]> {
   if ((await tableMode(t)) === "local") return readLocal<T>(t);
