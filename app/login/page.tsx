@@ -3,50 +3,27 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import { LogIn, UserPlus, Shield, ArrowRight, Loader2 } from "lucide-react";
+import { Shield, ArrowRight, Loader2 } from "lucide-react";
 
 export default function LoginPage() {
-  const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
+  // Solo inicio de sesión: las cuentas (Guille y Millán) se crean a mano en Supabase → Authentication → Users.
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-
-    try {
-      if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-      } else {
-        const { error, data: authData } = await supabase.auth.signUp({ 
-          email, 
-          password,
-          options: { data: { full_name: name } }
-        });
-        if (error) throw error;
-        
-        if (authData.user) {
-          await supabase.from('team_members').upsert({
-            user_id: authData.user.id,
-            full_name: name,
-            email: email,
-            role: 'Admin',
-            status: 'active'
-          });
-        }
-      }
-      router.push("/");
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      setError(error.message === "Invalid login credentials" ? "Correo o contraseña incorrectos." : error.message);
       setLoading(false);
+      return;
     }
+    router.replace("/");
   };
 
   return (
@@ -58,7 +35,7 @@ export default function LoginPage() {
           </div>
           <h1 className="login-title">Aldia Smart Connect</h1>
           <p className="login-subtitle">
-            {isLogin ? "Bienvenido de nuevo al CRM inteligente." : "Crea tu cuenta para empezar a automatizar."}
+            Panel interno de ALDIA Project.
           </p>
         </div>
 
@@ -69,18 +46,6 @@ export default function LoginPage() {
         )}
 
         <form className="login-form" onSubmit={handleAuth}>
-          {!isLogin && (
-            <div className="form-group">
-              <label>Nombre Completo</label>
-              <input 
-                type="text" 
-                placeholder="Juan Pérez" 
-                value={name} 
-                onChange={(e) => setName(e.target.value)} 
-                required 
-              />
-            </div>
-          )}
           <div className="form-group">
             <label>Correo Electrónico</label>
             <input 
@@ -107,7 +72,7 @@ export default function LoginPage() {
               <Loader2 className="animate-spin" />
             ) : (
               <>
-                {isLogin ? "Iniciar Sesión" : "Crear Cuenta"}
+                Iniciar sesión
                 <ArrowRight style={{ width: "18px" }} />
               </>
             )}
@@ -115,12 +80,7 @@ export default function LoginPage() {
         </form>
 
         <div className="login-footer">
-          <p>
-            {isLogin ? "¿No tienes cuenta?" : "¿Ya tienes cuenta?"}{" "}
-            <button onClick={() => setIsLogin(!isLogin)}>
-              {isLogin ? "Regístrate aquí" : "Inicia sesión"}
-            </button>
-          </p>
+          <p>Acceso solo para el equipo de ALDIA.</p>
         </div>
       </div>
 

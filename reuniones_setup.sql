@@ -12,5 +12,4 @@ CREATE TABLE IF NOT EXISTS reuniones (
 -- Enable RLS
 ALTER TABLE reuniones ENABLE ROW LEVEL SECURITY;
 
--- Global Shared Access policy (everyone can see/edit)
-CREATE POLICY "Global Shared Access" ON reuniones FOR ALL USING (true) WITH CHECK (true);
+-- Políticas: las pone seguridad_rls.sql (ejecutarlo siempre al final). Nunca USING (true).

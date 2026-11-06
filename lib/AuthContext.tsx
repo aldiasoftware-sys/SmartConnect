@@ -19,22 +19,46 @@ const AuthContext = createContext<AuthContextType>({
   signOut: async () => {},
 });
 
+const PUBLIC_PATHS = ["/login"];
+
+/**
+ * Sesión real de Supabase. Sin sesión solo se ve /login; el resto de la app no se pinta.
+ * La protección de verdad está en las políticas RLS (seguridad_rls.sql): sin login la base no devuelve nada.
+ */
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  // Bypassed Authentication 
-  const mockUser = { id: "public-bypass", email: "admin@aldiasmartconnect.com" } as User;
-  const mockSession = { user: mockUser } as Session;
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+  const pathname = usePathname();
+  const isPublic = PUBLIC_PATHS.includes(pathname);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      setLoading(false);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => setSession(s));
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (loading) return;
+    if (!session && !isPublic) router.replace("/login");
+    if (session && isPublic) router.replace("/");
+  }, [loading, session, isPublic, router]);
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    router.replace("/login");
+  };
+
+  const ready = !loading && (isPublic ? !session : !!session);
 
   return (
-    <AuthContext.Provider value={{ user: mockUser, session: mockSession, loading: false, signOut: async () => {} }}>
-      {children}
+    <AuthContext.Provider value={{ user: session?.user ?? null, session, loading, signOut }}>
+      {ready ? children : <div style={{ minHeight: "100vh", width: "100%" }} />}
     </AuthContext.Provider>
   );
 };
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
-  return context;
-};
+export const useAuth = () => useContext(AuthContext);

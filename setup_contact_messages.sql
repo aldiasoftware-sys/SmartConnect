@@ -12,5 +12,4 @@ CREATE TABLE IF NOT EXISTS contact_messages (
 -- ENABLE RLS
 ALTER TABLE contact_messages ENABLE ROW LEVEL SECURITY;
 
--- GLOBAL SHARED ACCESS POLICY (Consistent with your other tables)
-CREATE POLICY "Global Shared Access" ON contact_messages FOR ALL USING (true) WITH CHECK (true);
+-- Políticas: las pone seguridad_rls.sql (ejecutarlo siempre al final). Nunca USING (true).

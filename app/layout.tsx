@@ -1,13 +1,13 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { CalendarCheck } from "lucide-react";
+import { CalendarCheck, LogOut } from "lucide-react";
 import "./globals.css";
 import Sidebar, { NAV_SECTIONS } from "@/components/Sidebar";
 import WeeklyCheckin from "@/components/WeeklyCheckin";
 import SalesProvider from "@/lib/SalesContext";
 import SocialProvider, { useSocial } from "@/lib/SocialContext";
-import { AuthProvider } from "@/lib/AuthContext";
+import { AuthProvider, useAuth } from "@/lib/AuthContext";
 import { weekLabel, weekNumber, weekStart } from "@/lib/social";
 import { sweep } from "@/lib/files";
 import { useEffect } from "react";
@@ -15,6 +15,7 @@ import { useEffect } from "react";
 function Header() {
   const pathname = usePathname();
   const { pending, openCheckin } = useSocial();
+  const { user, signOut } = useAuth();
   const page = NAV_SECTIONS.flatMap((s) => s.items.map((i) => ({ ...i, section: s.title }))).find((i) => i.href === pathname);
   const w = weekStart();
 
@@ -29,7 +30,8 @@ function Header() {
           {pending ? <span className="pulse-dot" /> : <CalendarCheck />}
           {pending ? "Check-in pendiente" : "Check-in semanal"}
         </button>
-        <div className="avatar" style={{ background: "var(--ink)", color: "#fff", borderColor: "var(--ink)" }}>A</div>
+        <div className="avatar" title={user?.email || ""} style={{ background: "var(--ink)", color: "#fff", borderColor: "var(--ink)" }}>{(user?.email || "A")[0].toUpperCase()}</div>
+        <button className="checkin-btn" onClick={signOut} title="Cerrar sesión" aria-label="Cerrar sesión"><LogOut /></button>
       </div>
     </header>
   );

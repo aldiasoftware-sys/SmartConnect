@@ -19,7 +19,8 @@ Panel interno de ALDIA Project, organizado como el *Roadmap de arranque*: atraer
    NEXT_PUBLIC_SUPABASE_URL=...
    NEXT_PUBLIC_SUPABASE_ANON_KEY=...
    ```
-3. En el SQL Editor de Supabase ejecuta `supabase_setup.sql`, `reuniones_setup.sql`, `setup_contact_messages.sql` y `redes_setup.sql`.
+3. En el SQL Editor de Supabase ejecuta `supabase_setup.sql`, `reuniones_setup.sql`, `setup_contact_messages.sql`, `redes_setup.sql` y, **siempre al final**, `seguridad_rls.sql` (con los emails del equipo puestos).
+   Crea las cuentas en Authentication → Users (no hay registro en la app) y desactiva «Allow new users to sign up».
    Si una tabla nueva aún no existe, esa sección guarda en el navegador y lo sube sola cuando la tabla aparece.
 4. `npm run dev` → http://localhost:3000
 
@@ -27,4 +28,4 @@ Panel interno de ALDIA Project, organizado como el *Roadmap de arranque*: atraer
 
 `npx next build` genera la web estática en `out/` (todo funciona en el navegador contra Supabase). Esa carpeta se sube tal cual a Cloudflare Pages.
 
-> La app no tiene login. Si se publica, protegedla (por ejemplo con Cloudflare Access), porque incluye la página de Credenciales.
+> Acceso con login de Supabase y RLS «solo equipo» en todas las tablas (ver `seguridad_rls.sql`). Sin sesión la base no devuelve nada.

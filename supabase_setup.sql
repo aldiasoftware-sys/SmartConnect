@@ -1,5 +1,5 @@
 -- ALDIA SMART CONNECT - SINGLE SHARED ENVIRONMENT SETUP
--- All authenticated users share the same data
+-- Datos compartidos por el equipo; acceso controlado en seguridad_rls.sql
 
 -- 1. Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -54,15 +54,6 @@ CREATE TABLE IF NOT EXISTS tasks (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 4. CLEANUP ALL POLICIES
-DO $$ 
-DECLARE
-  pol record;
-BEGIN
-  FOR pol IN (SELECT policyname, tablename FROM pg_policies WHERE schemaname = 'public') LOOP
-    EXECUTE 'DROP POLICY IF EXISTS ' || quote_ident(pol.policyname) || ' ON ' || quote_ident(pol.tablename);
-  END LOOP;
-END $$;
 
 -- 5. ENABLE RLS
 ALTER TABLE team_members ENABLE ROW LEVEL SECURITY;
@@ -71,9 +62,4 @@ ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE credentials ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
 
--- 6. PUBLIC SHARED POLICIES (Everyone has access without login)
-CREATE POLICY "Global Shared Access" ON team_members FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Global Shared Access" ON finances FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Global Shared Access" ON subscriptions FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Global Shared Access" ON credentials FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Global Shared Access" ON tasks FOR ALL USING (true) WITH CHECK (true);
+-- Políticas: las pone seguridad_rls.sql (ejecutarlo siempre al final). Nunca USING (true).

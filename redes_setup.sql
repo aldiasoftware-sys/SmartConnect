@@ -40,12 +40,6 @@ ALTER TABLE social_snapshots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE social_plans ENABLE ROW LEVEL SECURITY;
 ALTER TABLE gantt_items ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "Global Shared Access" ON social_snapshots;
-DROP POLICY IF EXISTS "Global Shared Access" ON social_plans;
-DROP POLICY IF EXISTS "Global Shared Access" ON gantt_items;
-CREATE POLICY "Global Shared Access" ON social_snapshots FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Global Shared Access" ON social_plans FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Global Shared Access" ON gantt_items FOR ALL USING (true) WITH CHECK (true);
 
 -- ==========================================
 -- ROADMAP DE ARRANQUE (v2): contenido, comunidad, ofertas
@@ -114,11 +108,3 @@ ALTER TABLE community_people ENABLE ROW LEVEL SECURITY;
 ALTER TABLE offers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE app_settings ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "Global Shared Access" ON content_posts;
-DROP POLICY IF EXISTS "Global Shared Access" ON community_people;
-DROP POLICY IF EXISTS "Global Shared Access" ON offers;
-DROP POLICY IF EXISTS "Global Shared Access" ON app_settings;
-CREATE POLICY "Global Shared Access" ON content_posts FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Global Shared Access" ON community_people FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Global Shared Access" ON offers FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Global Shared Access" ON app_settings FOR ALL USING (true) WITH CHECK (true);
