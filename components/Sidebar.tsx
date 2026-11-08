@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Home, CalendarRange, Share2, Users, Inbox, Briefcase, Video, CircleDollarSign, LineChart,
-  GanttChart, UserCog, CalendarDays, KeySquare, FolderOpen, Mail,
+  GanttChart, UserCog, CalendarDays, KeySquare, FolderOpen, Mail, MessagesSquare,
 } from "lucide-react";
 
 // Organizado como el Roadmap de arranque: atraer (contenido) → capturar y nutrir (comunidad) → convertir (comercial); y el equipo.
@@ -20,6 +20,7 @@ export const NAV_SECTIONS = [
   { title: "Comunidad", items: [
     { name: "Leads y contactos", href: "/comunidad", icon: Users },
     { name: "Newsletter", href: "/newsletter", icon: Mail, isNew: true },
+    { name: "Discord", href: "/discord", icon: MessagesSquare, isNew: true },
     { name: "Mensajes web", href: "/clientes", icon: Inbox },
   ] },
   { title: "Comercial", items: [

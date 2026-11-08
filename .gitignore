@@ -37,3 +37,7 @@ next-env.d.ts
 
 # copia del git de GymRace2 que había en esta carpeta
 /.git_gymrace2/
+
+# secretos de wrangler pages dev (local)
+.dev.vars
+.wrangler/
