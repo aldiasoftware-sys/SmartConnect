@@ -41,3 +41,4 @@ next-env.d.ts
 # secretos de wrangler pages dev (local)
 .dev.vars
 .wrangler/
+.env*
