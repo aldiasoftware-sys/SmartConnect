@@ -13,3 +13,7 @@ export const memberByEmail = (email?: string | null) =>
 
 /** Lo que en el calendario es de los dos (la cuenta conjunta y lo que aún no tiene dueño). */
 export const SHARED_OWNER = "Aldia";
+export const isShared = (owner?: string | null) => !owner || owner === SHARED_OWNER || owner === "Ambos";
+
+/** ¿Esta pieza va en el calendario de esta persona? (por su nombre en el calendario, su nombre o su carpeta de Archivos) */
+export const ownedBy = (owner: string | null | undefined, m: TeamMember) => !!owner && (owner === m.owner || owner === m.name || owner === m.folder);

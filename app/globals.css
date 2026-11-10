@@ -1423,3 +1423,7 @@ button.mx-pill:hover { filter: brightness(0.96); }
   .hdr-week, .hdr-week + .hdr-sep { display: none; }
   .hdr-checkin { padding: 0 0.6rem; }
 }
+
+/* Contenido: un calendario por persona (los dos visibles para los dos) */
+.cal-person { margin-bottom: 1.5rem; }
+.cal-person-head { display: flex; align-items: center; gap: 0.875rem; margin-bottom: 0.75rem; padding: 0 0.25rem; }

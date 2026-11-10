@@ -7,8 +7,9 @@ import { DIAS, KINDS, PLATFORMS, Post, STATUSES, TARGETS, addDays, contentByWeek
 import { loadWeekTemplate } from "@/lib/content";
 import PostEditor from "@/components/PostEditor";
 import { useScope } from "@/lib/ScopeContext";
+import { TEAM, TeamMember, isShared, ownedBy } from "@/lib/team";
 
-const blank = (date: string | null, platform = "tiktok"): Post => ({ publish_date: date, platform, kind: platform === "tiktok" ? "noticia" : "post", owner: "Aldia", title: "", status: "idea" });
+const blank = (date: string | null, platform = "tiktok", owner = "Aldia"): Post => ({ publish_date: date, platform, kind: platform === "tiktok" ? "noticia" : "post", owner, title: "", status: "idea" });
 
 function Target({ label, done, planned, target }: { label: string; done: number; planned: number; target: number }) {
   const slots = Math.max(target, planned);
@@ -23,9 +24,14 @@ function Target({ label, done, planned, target }: { label: string; done: number;
 
 export default function ContenidoPage() {
   const { posts: allPosts, refresh, local, loading } = useSocial();
-  const { me, isMine } = useScope();
-  // en el calendario cada uno ve lo que le toca subir (lo suyo y lo de la cuenta conjunta sin dueño)
-  const posts = allPosts.filter((p) => isMine(p.owner));
+  const { me, scope } = useScope();
+  // Un calendario por persona y los dos los ven los dos (con «Solo yo» arriba, solo el tuyo). El tuyo va primero.
+  // Lo de Archivos › Alejandro cae solo en el de Millán y lo de Archivos › Guille en el de Guille (lib/contentSync.ts);
+  // lo de la cuenta conjunta (sin dueño) sale en los dos.
+  const people: TeamMember[] = me ? [me, ...TEAM.filter((m) => m.id !== me.id)] : TEAM;
+  const shown = scope === "yo" && me ? [me] : people;
+  const posts = allPosts;
+  const of = (m: TeamMember) => (list: Post[]) => list.filter((p) => ownedBy(p.owner, m) || isShared(p.owner));
   const [week, setWeek] = useState(weekStart());
   const [editing, setEditing] = useState<Post | null>(null);
   const [busy, setBusy] = useState(false);
@@ -35,8 +41,8 @@ export default function ContenidoPage() {
   const weekPosts = posts.filter((p) => p.publish_date && p.publish_date >= week && p.publish_date <= days[6]);
   const stats = contentByWeek(posts, [week])[0];
   const planned = (pl: string) => weekPosts.filter((p) => p.platform === pl).length;
-  // regla: 1 publicación al día por red como máximo
-  const crowded = days.flatMap((d) => ["tiktok", "linkedin"].filter((pl) => weekPosts.filter((p) => p.publish_date === d && p.platform === pl).length > 1).map((pl) => `${DIAS[days.indexOf(d)]} (${PLATFORMS[pl].label})`));
+  // regla: 1 publicación al día por red y persona como máximo
+  const crowded = people.flatMap((m) => days.flatMap((d) => ["tiktok", "linkedin"].filter((pl) => of(m)(weekPosts).filter((p) => p.publish_date === d && p.platform === pl).length > 1).map((pl) => `${DIAS[days.indexOf(d)]} de ${m.name} (${PLATFORMS[pl].label})`)));
 
   async function template() {
     setBusy(true); await loadWeekTemplate(week, posts); await refresh(); setBusy(false);
@@ -46,7 +52,7 @@ export default function ContenidoPage() {
     const st = statusOf(p.status); const failed = p.status !== "publicado" && !!p.publish_date && p.publish_date < t;
     return (
       <button key={p.id} className={`post-card ${failed ? "failed" : ""} ${p.status === "publicado" ? "done" : ""}`} style={{ borderLeftColor: PLATFORMS[p.platform]?.color }} onClick={() => setEditing(p)}>
-        <div className="pc-top"><span>{PLATFORMS[p.platform]?.label} · {KINDS[p.kind || ""] || p.kind}</span>{p.owner && p.owner !== "Aldia" && <span>{p.owner}</span>}</div>
+        <div className="pc-top"><span>{PLATFORMS[p.platform]?.label} · {KINDS[p.kind || ""] || p.kind}</span>{isShared(p.owner) && <span>Conjunta</span>}</div>
         <div className="pc-title">{p.title}</div>
         <div className="flex items-center justify-between" style={{ marginTop: 6, gap: 6 }}>
           <span className="st-dot"><i style={{ background: failed ? "var(--bad)" : st.color }} />{failed ? "Sin publicar" : st.label}</span>
@@ -62,11 +68,11 @@ export default function ContenidoPage() {
         <div>
           <div className="eyebrow">Rutina de contenido</div>
           <h2 className="page-title">Contenido</h2>
-          <p className="page-subtitle">{me ? <>Lo que te toca subir a ti, <b>{me.name}</b>, y lo de la cuenta conjunta.</> : "Qué se publica y cuándo."} Grabamos en lote el fin de semana y publicamos cada día.</p>
+          <p className="page-subtitle">Un calendario para cada uno: lo que sube cada uno a Archivos se pone solo en el suyo. Grabamos en lote el fin de semana y publicamos cada día.</p>
         </div>
         <div className="flex gap-3 items-center">
           <button className="btn-secondary" onClick={template} disabled={busy || loading}><Wand2 style={{ width: 16, height: 16 }} /> Cargar semana tipo</button>
-          <button className="btn-primary" onClick={() => setEditing(blank(t >= week && t <= days[6] ? t : week))}><Plus style={{ width: 17, height: 17 }} /> Nueva pieza</button>
+          <button className="btn-primary" onClick={() => setEditing(blank(t >= week && t <= days[6] ? t : week, "tiktok", me?.owner || "Aldia"))}><Plus style={{ width: 17, height: 17 }} /> Nueva pieza</button>
         </div>
       </div>
 
@@ -98,21 +104,37 @@ export default function ContenidoPage() {
         </div>
       </div>
 
-      <div className="week-board" style={{ marginBottom: "1.5rem" }}>
-        {days.map((d, i) => (
-          <div key={d} className={`day-col ${d === t ? "today" : ""} ${i >= 5 ? "weekend" : ""}`}>
-            <div className="day-head"><b>{DIAS[i]}</b><span>{fromISO(d).getDate()}</span></div>
-            {i >= 5 && (
-              <div className="day-off">
-                <b>{i === 5 ? "Día de grabación" : "Planteamiento de la semana"}</b>
-                <span>{i === 5 ? "Se graba en lote todo lo de la semana." : "Se decide qué se publica de lunes a viernes."}</span>
+      {shown.map((m) => {
+        const mine = of(m)(weekPosts), n = (pl: string) => mine.filter((p) => p.platform === pl).length;
+        return (
+          <section key={m.id} className="cal-person">
+            <div className="cal-person-head">
+              <span className="mx-avatar">{m.name[0]}</span>
+              <div className="mx-grow">
+                <div className="mx-title">Calendario de {m.name}{me?.id === m.id && <span className="mx-count" style={{ marginLeft: 10 }}>Tú</span>}</div>
+                <div className="mx-meta">Lo que se sube a Archivos › {m.folder} entra aquí solo</div>
               </div>
-            )}
-            {weekPosts.filter((p) => p.publish_date === d).sort((a, b) => a.platform.localeCompare(b.platform)).map(card)}
-            {i < 5 && <button className="add-slot" onClick={() => setEditing(blank(d, i === 4 ? "linkedin" : "tiktok"))}>+ Añadir</button>}
-          </div>
-        ))}
-      </div>
+              <span className="mx-pill">TikTok {n("tiktok")}</span>
+              <span className="mx-pill">LinkedIn {n("linkedin")}</span>
+            </div>
+            <div className="week-board">
+              {days.map((d, i) => (
+                <div key={d} className={`day-col ${d === t ? "today" : ""} ${i >= 5 ? "weekend" : ""}`}>
+                  <div className="day-head"><b>{DIAS[i]}</b><span>{fromISO(d).getDate()}</span></div>
+                  {i >= 5 && (
+                    <div className="day-off">
+                      <b>{i === 5 ? "Día de grabación" : "Planteamiento de la semana"}</b>
+                      <span>{i === 5 ? "Se graba en lote todo lo de la semana." : "Se decide qué se publica de lunes a viernes."}</span>
+                    </div>
+                  )}
+                  {mine.filter((p) => p.publish_date === d).sort((a, b) => a.platform.localeCompare(b.platform)).map(card)}
+                  {i < 5 && <button className="add-slot" onClick={() => setEditing(blank(d, i === 4 ? "linkedin" : "tiktok", m.owner))}>+ Añadir</button>}
+                </div>
+              ))}
+            </div>
+          </section>
+        );
+      })}
 
       {editing && <PostEditor post={editing} onClose={() => setEditing(null)} onSaved={refresh} />}
     </div>

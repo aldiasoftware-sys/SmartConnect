@@ -2,22 +2,25 @@ import { supabase } from "./supabase";
 import { Kit, StoredFile, bucketExists, groupKits, isDiscarded, listAll, listDiscarded, pruneDiscarded, readText } from "./files";
 import { Post, addDays, fromISO, today } from "./social";
 import { deleteRow, listRows, saveRow, tableMode } from "./store";
+import { TEAM, isShared } from "./team";
 
 // Archivos → Calendario: cada vídeo que entra en Archivos aparece solo en el calendario (una pieza de TikTok, otra de LinkedIn
 // y otra de Instagram si trae su pie de foto),
 // se actualiza si se cambian sus textos y desaparece si se borra. Lo publicado o con fecha pasada se queda (historial y fallos).
 // Si una pieza se borra a mano en el calendario, queda descartada (lib/files.ts) y no se vuelve a crear aunque su vídeo siga en Archivos.
-const OWNER: Record<string, string> = { Guille: "Guille", Alejandro: "Millán" };
+// Cada carpeta de Archivos va al calendario de su persona: Archivos › Alejandro → calendario de Millán; Archivos › Guille → el de Guille.
+const OWNER: Record<string, string> = Object.fromEntries(TEAM.map((m) => [m.folder, m.owner]));
 
 /** Se publica de lunes a viernes; el sábado se graba y el domingo se plantea la semana. */
 export const isPublishDay = (d: string) => { const w = fromISO(d).getDay(); return w >= 1 && w <= 5; };
 
-/** Primer día de lunes a viernes, desde `from`, en el que esa red tiene hueco (1 publicación al día por red como máximo).
+/** Primer día de lunes a viernes, desde `from`, en el que esa red tiene hueco EN EL CALENDARIO DE ESA PERSONA
+ *  (cada uno tiene el suyo: 1 publicación al día por red y persona como máximo; lo conjunto cuenta en los dos).
  *  Un hueco es un día sin nada en esa red o con una pieza de la semana tipo aún vacía (en «Idea» y sin vídeo), que se aprovecha. */
-function firstSlot(posts: Post[], platform: string, from: string): { day: string; reuse?: Post } {
+function firstSlot(posts: Post[], platform: string, from: string, owner: string): { day: string; reuse?: Post } {
   for (let i = 0; i < 120; i++) {
     const d = addDays(from, i); if (!isPublishDay(d)) continue;
-    const there = posts.filter((p) => p.publish_date === d && p.platform === platform);
+    const there = posts.filter((p) => p.publish_date === d && p.platform === platform && (p.owner === owner || isShared(p.owner)));
     if (!there.length) return { day: d };
     const idea = there.find((p) => p.status === "idea" && !p.archivo);
     if (there.length === 1 && idea) return { day: d, reuse: idea };
@@ -68,7 +71,7 @@ async function run() {
         const cur = posts.find((p) => p.archivo === key && p.platform === w.platform);
         if (!cur && isDiscarded(discarded, key, w.platform)) continue;   // la borraron a mano en el calendario
         if (!cur) {
-          const { day, reuse } = firstSlot(posts, w.platform, date > t ? date : t);
+          const { day, reuse } = firstSlot(posts, w.platform, date > t ? date : t, w.owner);
           try {
             const row = { ...(reuse || {}), ...w, kind: reuse?.kind || w.kind, publish_date: day, status: "montado", archivo: key, notes: `Desde Archivos › ${person} › ${date}` } as Post;
             const saved = await saveRow<Post>("content_posts", row);
