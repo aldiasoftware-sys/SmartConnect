@@ -64,6 +64,7 @@ export type Post = {
 export const PLATFORMS: Record<string, { label: string; color: string; soft: string }> = {
   tiktok: { label: "TikTok", color: "#fe2c55", soft: "#ffe8ed" },
   linkedin: { label: "LinkedIn", color: "#0a66c2", soft: "#e3eefa" },
+  instagram: { label: "Instagram", color: "#d6249f", soft: "#fbe6f4" },
   newsletter: { label: "Newsletter", color: "#0e0e0e", soft: "#eceef1" },
   directo: { label: "Directo", color: "#e8590c", soft: "#ffeadc" },
   telegram: { label: "Telegram", color: "#229ed9", soft: "#e2f3fb" },

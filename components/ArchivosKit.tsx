@@ -1,7 +1,7 @@
 "use client";
 
 import { HTMLAttributes, useEffect, useState } from "react";
-import { Download, Copy, Check, FileText, Film, Image as ImageIcon, File as FileIcon, Clock, Linkedin } from "lucide-react";
+import { Download, Copy, Check, FileText, Film, Image as ImageIcon, File as FileIcon, Clock, Linkedin, Instagram } from "lucide-react";
 import { fromISO, shortDate, today } from "@/lib/social";
 import { Kit, StoredFile, deletesOn, fmtSize, isImage, isText, isVideo, readText, signedUrl } from "@/lib/files";
 import { CardMenu } from "./Papelera";
@@ -32,6 +32,7 @@ export function KitCard({ kit, onDelete, drag }: { kit: Kit; onDelete: () => voi
   const [urls, setUrls] = useState<Record<string, string>>({});
   const [li, setLi] = useState<{ title: string; desc: string } | null>(null);
   const [tt, setTt] = useState<string | null>(null);
+  const [ig, setIg] = useState<string | null>(null);
 
   useEffect(() => {
     for (const f of [kit.video, kit.thumb]) if (f) signedUrl(f.path).then((u) => setUrls((x) => ({ ...x, [f.path]: u }))).catch(() => {});
@@ -40,6 +41,7 @@ export function KitCard({ kit, onDelete, drag }: { kit: Kit; onDelete: () => voi
       setLi(m ? { title: m[1].trim(), desc: m[2].trim() } : { title: "", desc: t.trim() });
     }).catch(() => setLi({ title: "", desc: "(no se ha podido leer)" }));
     if (kit.tiktok) readText(kit.tiktok.path).then((t) => setTt(t.trim())).catch(() => setTt("(no se ha podido leer)"));
+    if (kit.instagram) readText(kit.instagram.path).then((t) => setIg(t.trim())).catch(() => setIg("(no se ha podido leer)"));
   }, [kit.name]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const media = tab === "video" ? kit.video : kit.thumb;
@@ -104,6 +106,16 @@ export function KitCard({ kit, onDelete, drag }: { kit: Kit; onDelete: () => voi
             <div className="field">
               <div className="field-top"><span>Título</span>{tt && <CopyButton text={tt} />}</div>
               <p className="field-title">{tt ?? "Cargando…"}</p>
+            </div>
+          </section>
+        )}
+
+        {kit.instagram && (
+          <section className="net net-ig">
+            <header><span className="net-ico" style={{ background: "linear-gradient(45deg, #fd5949, #d6249f 55%, #285aeb)" }}><Instagram /></span> Instagram</header>
+            <div className="field">
+              <div className="field-top"><span>Pie del Reel</span>{ig && <CopyButton text={ig} />}</div>
+              <p className="field-desc">{ig ?? "Cargando…"}</p>
             </div>
           </section>
         )}

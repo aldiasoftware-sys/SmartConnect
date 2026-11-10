@@ -3,7 +3,8 @@ import { Kit, StoredFile, bucketExists, groupKits, isDiscarded, listAll, listDis
 import { Post, addDays, fromISO, today } from "./social";
 import { deleteRow, listRows, saveRow, tableMode } from "./store";
 
-// Archivos → Calendario: cada vídeo que entra en Archivos aparece solo en el calendario (una pieza de TikTok y otra de LinkedIn),
+// Archivos → Calendario: cada vídeo que entra en Archivos aparece solo en el calendario (una pieza de TikTok, otra de LinkedIn
+// y otra de Instagram si trae su pie de foto),
 // se actualiza si se cambian sus textos y desaparece si se borra. Lo publicado o con fecha pasada se queda (historial y fallos).
 // Si una pieza se borra a mano en el calendario, queda descartada (lib/files.ts) y no se vuelve a crear aunque su vídeo siga en Archivos.
 const OWNER: Record<string, string> = { Guille: "Guille", Alejandro: "Millán" };
@@ -61,6 +62,7 @@ async function run() {
       const want = [
         { platform: "tiktok", kind: "video", owner: OWNER[person] || person, title: tt },
         ...(kit.linkedin ? [{ platform: "linkedin", kind: "post", owner: OWNER[person] || person, title: li }] : []),
+        ...(kit.instagram ? [{ platform: "instagram", kind: "video", owner: OWNER[person] || person, title: tt.split("#")[0].trim() || kit.name }] : []),
       ];
       for (const w of want) {
         const cur = posts.find((p) => p.archivo === key && p.platform === w.platform);

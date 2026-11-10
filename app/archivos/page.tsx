@@ -73,7 +73,7 @@ export default function ArchivosPage() {
         <div>
           <div className="eyebrow">Guille · Alejandro</div>
           <h2 className="page-title">Archivos</h2>
-          <p className="page-subtitle">Lo que dejan listas las skills: vídeo, miniatura, título y descripción de LinkedIn y título de TikTok. Cada archivo se borra solo a los {KEEP_DAYS} días.</p>
+          <p className="page-subtitle">Lo que dejan listas las skills: vídeo, miniatura y los textos de LinkedIn, TikTok e Instagram. Cada archivo se borra solo a los {KEEP_DAYS} días.</p>
         </div>
         <div className="flex gap-3 items-center">
           <button className="btn-secondary" onClick={() => load(true)} disabled={loading}><RefreshCw style={{ width: 15, height: 15 }} /> Actualizar</button>
