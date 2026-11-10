@@ -1,4 +1,4 @@
-import { Linkedin, Mail, Send } from "lucide-react";
+import { Instagram, Linkedin, Mail, Send } from "lucide-react";
 import { Account } from "@/lib/social";
 
 /** Icono cuadrado de la cuenta: LinkedIn con su color, TikTok con la nota, canal de avisos y newsletter. */
@@ -7,6 +7,7 @@ export default function AccountIcon({ account, size = 36 }: { account: Account; 
   return (
     <span className="acc-ico" style={{ width: size, height: size, borderRadius: size * 0.3, background: account.platform === "tiktok" ? "#0e0e0e" : account.color }}>
       {account.platform === "linkedin" ? <Linkedin style={ico} />
+        : account.platform === "instagram" ? <Instagram style={ico} />
         : account.platform === "own" ? (account.id === "newsletter" ? <Mail style={ico} /> : <Send style={ico} />)
         : (
           <svg viewBox="0 0 24 24" fill="none" aria-hidden style={{ width: size * 0.5, height: size * 0.5 }}>

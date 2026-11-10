@@ -30,7 +30,7 @@ export default function ContenidoPage() {
   const days = Array.from({ length: 7 }, (_, i) => addDays(week, i));
   const weekPosts = posts.filter((p) => p.publish_date && p.publish_date >= week && p.publish_date <= days[6]);
   // regla: 1 publicación al día por red y persona como máximo
-  const crowded = people.flatMap((m) => days.flatMap((d) => ["tiktok", "linkedin"].filter((pl) => of(m)(weekPosts).filter((p) => p.publish_date === d && p.platform === pl && !(isShared(p.owner) && p.archivo)).length > 1).map((pl) => `${DIAS[days.indexOf(d)]} de ${m.name} (${PLATFORMS[pl].label})`)));
+  const crowded = people.flatMap((m) => days.flatMap((d) => ["tiktok", "instagram", "linkedin"].filter((pl) => of(m)(weekPosts).filter((p) => p.publish_date === d && p.platform === pl && !(isShared(p.owner) && p.archivo)).length > 1).map((pl) => `${DIAS[days.indexOf(d)]} de ${m.name} (${PLATFORMS[pl].label})`)));
 
   async function template() {
     setBusy(true); await loadWeekTemplate(week, posts); await refresh(); setBusy(false);
@@ -38,6 +38,13 @@ export default function ContenidoPage() {
 
   const card = (p: Post) => {
     const st = statusOf(p.status); const failed = p.status !== "publicado" && !!p.publish_date && p.publish_date < t;
+    // lo de la cuenta conjunta (lo que sale de Archivos › Aldia) ocupa una línea: lo publica cualquiera de los dos
+    if (isShared(p.owner) && p.archivo) return (
+      <button key={p.id} className={`post-card post-card-mini ${failed ? "failed" : ""} ${p.status === "publicado" ? "done" : ""}`} style={{ borderLeftColor: PLATFORMS[p.platform]?.color }} onClick={() => setEditing(p)} title={p.title}>
+        <span className="st-dot"><i style={{ background: failed ? "var(--bad)" : st.color }} /></span>
+        <span className="pc-mini">Subir post {PLATFORMS[p.platform]?.label}</span>
+      </button>
+    );
     return (
       <button key={p.id} className={`post-card ${failed ? "failed" : ""} ${p.status === "publicado" ? "done" : ""}`} style={{ borderLeftColor: PLATFORMS[p.platform]?.color }} onClick={() => setEditing(p)}>
         <div className="pc-top"><span>{PLATFORMS[p.platform]?.label} · {KINDS[p.kind || ""] || p.kind}</span>{isShared(p.owner) && <span>Conjunta</span>}</div>
@@ -90,6 +97,7 @@ export default function ContenidoPage() {
                 <div className="mx-meta">Lo que se sube a Archivos › {m.folder} entra aquí solo</div>
               </div>
               <span className="mx-pill">TikTok {n("tiktok")}</span>
+              <span className="mx-pill">Instagram {n("instagram")}</span>
               <span className="mx-pill">LinkedIn {n("linkedin")}</span>
             </div>
             <div className="week-board">

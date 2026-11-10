@@ -1,7 +1,7 @@
 "use client";
 
 import { Minus, TrendingDown, TrendingUp } from "lucide-react";
-import { ACCOUNTS, Account, Post, Snapshot, addDays, contentByWeek, fmt, followerSeries, pct, weekRange } from "@/lib/social";
+import { ACCOUNTS, Account, Post, Snapshot, addDays, contentByWeek, fmt, followerSeries, isAccountPost, pct, weekRange } from "@/lib/social";
 import { Sparkline } from "@/components/SocialCharts";
 import AccountIcon from "@/components/AccountIcon";
 
@@ -26,7 +26,7 @@ export default function AccountsWeek({ week, posts, snapshots, accounts = ACCOUN
       {accounts.map((a) => {
         const s = series[a.id];
         const now = s[li], before = li > 0 ? s[li - 1] : null;
-        const mine = (p: Post) => p.platform === a.platform && (a.platform === "tiktok" || p.owner === a.owner);
+        const mine = (p: Post) => isAccountPost(a, p);
         const plan = posts.filter((p) => mine(p) && p.publish_date && p.publish_date >= week && p.publish_date <= end);
         const hist = contentByWeek(posts.filter(mine), weeks).filter((p) => p.reviewed && p.planned > 0).slice(-8);
         const histPct = pct(hist.reduce((x, p) => x + p.published, 0), hist.reduce((x, p) => x + p.planned, 0));
@@ -46,7 +46,7 @@ export default function AccountsWeek({ week, posts, snapshots, accounts = ACCOUN
               </div>
               <div style={{ textAlign: "right" }}>
                 <div className="ci-mini">En el calendario</div>
-                <div style={{ fontWeight: 500, fontSize: "1.125rem" }}>{plan.length ? `${plan.filter((p) => p.status === "publicado").length}/${plan.length} ${a.platform === "tiktok" ? "vídeos" : "posts"}` : "—"}</div>
+                <div style={{ fontWeight: 500, fontSize: "1.125rem" }}>{plan.length ? `${plan.filter((p) => p.status === "publicado").length}/${plan.length} ${a.platform === "linkedin" ? "posts" : "vídeos"}` : "—"}</div>
                 <div className="section-sub">{hist.length ? `${histPct}% cumplido` : "sin historial"}</div>
               </div>
             </div>

@@ -1,12 +1,15 @@
 // Modelo del Roadmap de arranque de ALDIA (v2): cuentas, contenido, comunidad, ofertas y sus métricas.
 
 // ===================== CUENTAS =====================
-export type Platform = "linkedin" | "tiktok" | "own";
+export type Platform = "linkedin" | "tiktok" | "instagram" | "own";
 export type Account = { id: string; platform: Platform; name: string; owner: string; color: string; optional?: boolean };
 
 /** Redes (seguidores) */
 export const ACCOUNTS: Account[] = [
   { id: "tiktok_aldia", platform: "tiktok", name: "TikTok", owner: "Aldia (conjunta)", color: "#fe2c55" },
+  { id: "instagram_aldia", platform: "instagram", name: "Instagram", owner: "Aldia (conjunta)", color: "#d6249f", optional: true },
+  { id: "tiktok_guille", platform: "tiktok", name: "TikTok", owner: "Guille", color: "#25a8a3", optional: true },
+  { id: "instagram_guille", platform: "instagram", name: "Instagram", owner: "Guille", color: "#a855c7", optional: true },
   { id: "linkedin_guille", platform: "linkedin", name: "LinkedIn", owner: "Guille", color: "#0a66c2" },
   { id: "linkedin_millan", platform: "linkedin", name: "LinkedIn", owner: "Millán", color: "#5b6472" },
 ];
@@ -83,8 +86,15 @@ export const STATUSES = [
 ];
 export const statusOf = (id: string) => STATUSES.find((s) => s.id === id) || STATUSES[0];
 
-/** Mínimos de la rutina: 3 TikToks (ni menos ni muchos más) y 2 posts de LinkedIn a la semana; 1 publicación al día por red como máximo. */
-export const TARGETS = { tiktok: 3, linkedin: 2 };
+/** Mínimos de la semana con los posts diarios de lunes a viernes: Aldia (TikTok e Instagram) y Guille (TikTok, Instagram y LinkedIn). */
+export const TARGETS = { tiktok: 10, instagram: 10, linkedin: 5 };
+
+/** Las redes que cuentan para la rutina semanal. */
+export const ROUTINE_PLATFORMS = ["tiktok", "instagram", "linkedin"];
+
+/** ¿Esta pieza se publica en esta cuenta? El TikTok y el Instagram de Aldia los publica cualquiera de los dos; lo de Guille va a sus cuentas. */
+export const isAccountPost = (a: Account, p: { platform: string; owner: string | null }) =>
+  p.platform === a.platform && (a.id.endsWith("_aldia") ? p.owner !== "Guille" : p.owner === a.owner);
 
 /** La semana tipo del roadmap: cuatro piezas de TikTok (lunes a jueves) y dos de LinkedIn (caso del jueves y pregunta del viernes). */
 export const WEEK_TEMPLATE: Omit<Post, "publish_date">[] = [
@@ -97,18 +107,19 @@ export const WEEK_TEMPLATE: Omit<Post, "publish_date">[] = [
 ];
 export const TEMPLATE_DAY = [0, 1, 2, 3, 3, 4]; // lunes… viernes, en el mismo orden que WEEK_TEMPLATE
 
-export type WeekContent = { week: string; tiktok: number; linkedin: number; planned: number; published: number; failed: number; reviewed: boolean };
+export type WeekContent = { week: string; tiktok: number; instagram: number; linkedin: number; planned: number; published: number; failed: number; reviewed: boolean };
 
 /** Publicaciones de cada semana: lo publicado, lo planificado y los fallos (planificado, con la fecha pasada y sin publicar). */
 export function contentByWeek(posts: Post[], weeks: string[], platform?: string): WeekContent[] {
   const t = today();
   return weeks.map((w) => {
     const end = addDays(w, 6);
-    const ps = posts.filter((p) => p.publish_date && p.publish_date >= w && p.publish_date <= end && (!platform || p.platform === platform) && (p.platform === "tiktok" || p.platform === "linkedin"));
+    const ps = posts.filter((p) => p.publish_date && p.publish_date >= w && p.publish_date <= end && (!platform || p.platform === platform) && ROUTINE_PLATFORMS.includes(p.platform));
     const pub = ps.filter((p) => p.status === "publicado");
     return {
       week: w,
       tiktok: pub.filter((p) => p.platform === "tiktok").length,
+      instagram: pub.filter((p) => p.platform === "instagram").length,
       linkedin: pub.filter((p) => p.platform === "linkedin").length,
       planned: ps.length,
       published: pub.length,
@@ -118,7 +129,7 @@ export function contentByWeek(posts: Post[], weeks: string[], platform?: string)
   });
 }
 /** ¿Se cumplió el mínimo de la rutina esa semana? */
-export const metMinimum = (c: WeekContent) => c.tiktok >= TARGETS.tiktok && c.linkedin >= TARGETS.linkedin;
+export const metMinimum = (c: WeekContent) => c.tiktok >= TARGETS.tiktok && c.instagram >= TARGETS.instagram && c.linkedin >= TARGETS.linkedin;
 
 // ===================== SEGUIDORES =====================
 /** Semanas con algún dato, de la más antigua a la más reciente, sin huecos. */

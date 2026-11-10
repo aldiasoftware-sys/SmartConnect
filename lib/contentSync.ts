@@ -64,7 +64,7 @@ async function run() {
       const key = `${folder}/${kit.name}`; alive.add(key);
       const { li, tt } = await texts(kit);
       const want = [
-        { platform: "tiktok", kind: "video", owner: OWNER[person] || person, title: tt },
+        { platform: "tiktok", kind: "video", owner: OWNER[person] || person, title: tt.split("#")[0].trim() || kit.name },
         ...(kit.linkedin ? [{ platform: "linkedin", kind: "post", owner: OWNER[person] || person, title: li }] : []),
         ...(kit.instagram ? [{ platform: "instagram", kind: "video", owner: OWNER[person] || person, title: tt.split("#")[0].trim() || kit.name }] : []),
       ];

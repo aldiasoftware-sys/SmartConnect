@@ -1145,6 +1145,9 @@ input::placeholder, textarea::placeholder {
 .post-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
 .post-card .pc-top { display: flex; justify-content: space-between; align-items: center; gap: 6px; font-size: 0.625rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 3px; }
 .post-card .pc-title { font-size: 0.8125rem; font-weight: 600; line-height: 1.3; color: var(--ink); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.post-card-mini { display: flex; align-items: center; gap: 2px; padding: 0.35rem 0.5rem; }
+.post-card-mini .pc-mini { font-size: 0.75rem; font-weight: 500; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.post-card .pc-top { flex-wrap: wrap; }
 .post-card.failed { border-color: #f6c9cb; background: #fff8f8; }
 .post-card.done { opacity: 0.72; }
 .st-dot { display: inline-flex; align-items: center; gap: 5px; font-size: 0.6875rem; font-weight: 600; color: var(--text-secondary); text-transform: none; letter-spacing: 0; }

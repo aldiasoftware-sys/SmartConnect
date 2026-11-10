@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { X, CalendarCheck, Check, Minus, Timer } from "lucide-react";
 import { useSocial } from "@/lib/SocialContext";
-import { ACCOUNTS, KINDS, PLATFORMS, Post, Snapshot, TARGETS, addDays, checkinWeek, contentByWeek, countdown, fmt, nextCheckinAt, shortDate, toISO, weekLabel, weekNumber } from "@/lib/social";
+import { ACCOUNTS, ROUTINE_PLATFORMS, KINDS, PLATFORMS, Post, Snapshot, TARGETS, addDays, checkinWeek, contentByWeek, countdown, fmt, nextCheckinAt, shortDate, toISO, weekLabel, weekNumber } from "@/lib/social";
 import { saveRow, upsertRows } from "@/lib/store";
 import AccountIcon from "./AccountIcon";
 import Portal from "./Portal";
@@ -21,10 +21,10 @@ export default function WeeklyCheckin() {
   const [error, setError] = useState("");
 
   const prev = week ? addDays(week, -7) : "";
-  const inWeek = (p: Post, w: string) => !!p.publish_date && p.publish_date >= w && p.publish_date <= addDays(w, 6) && (p.platform === "tiktok" || p.platform === "linkedin");
+  const inWeek = (p: Post, w: string) => !!p.publish_date && p.publish_date >= w && p.publish_date <= addDays(w, 6) && ROUTINE_PLATFORMS.includes(p.platform);
   const prevPosts = posts.filter((p) => inWeek(p, prev)).sort((a, b) => a.publish_date!.localeCompare(b.publish_date!));
   const isCurrent = week === checkinWeek();
-  const doneThisWeek = isCurrent && ACCOUNTS.every((a) => snapshots.some((s) => s.week_start === week && s.account === a.id));
+  const doneThisWeek = isCurrent && ACCOUNTS.filter((a) => !a.optional).every((a) => snapshots.some((s) => s.week_start === week && s.account === a.id));
   const next = nextCheckinAt();
 
   // la cuenta atrás se actualiza sola mientras el diálogo está abierto
@@ -84,7 +84,7 @@ export default function WeeklyCheckin() {
             <div>
               <span className="chip" style={{ marginBottom: "0.75rem" }}><CalendarCheck style={{ width: 13, height: 13 }} /> Semana {weekNumber(week)} · {weekLabel(week)}</span>
               <h3 style={{ fontSize: "1.375rem", fontWeight: 500, letterSpacing: "-0.03em" }}>Check-in semanal</h3>
-              <p className="section-sub">Un minuto: cuánto crecemos y si cumplimos la rutina (3 TikToks y 2 posts de LinkedIn).</p>
+              <p className="section-sub">Un minuto: cuánto crecemos y si cumplimos la rutina.</p>
             </div>
             <button className="icon-btn" onClick={() => closeCheckin(true)} aria-label="Cerrar"><X /></button>
           </div>
@@ -110,6 +110,7 @@ export default function WeeklyCheckin() {
               <>
                 <div className="flex gap-2" style={{ marginBottom: "0.75rem", flexWrap: "wrap" }}>
                   <span className={`chip ${prevStats.tiktok >= TARGETS.tiktok ? "chip-ok" : "chip-bad"}`}>TikTok {prevStats.tiktok}/{TARGETS.tiktok}</span>
+                  <span className={`chip ${prevStats.instagram >= TARGETS.instagram ? "chip-ok" : "chip-bad"}`}>Instagram {prevStats.instagram}/{TARGETS.instagram}</span>
                   <span className={`chip ${prevStats.linkedin >= TARGETS.linkedin ? "chip-ok" : "chip-bad"}`}>LinkedIn {prevStats.linkedin}/{TARGETS.linkedin}</span>
                 </div>
                 {prevPosts.map((p) => (

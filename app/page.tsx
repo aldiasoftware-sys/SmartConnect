@@ -19,7 +19,7 @@ export default function EstaSemanaPage() {
   const { snapshots, posts: allPosts, refresh, loading, pending: checkinPending, openCheckin } = useSocial();
   const { me, scope, inScope } = useScope();
   const posts = allPosts.filter((p) => inScope(p.owner));
-  const accounts = scope === "yo" && me ? ACCOUNTS.filter((a) => a.platform === "tiktok" || a.id === me.linkedin) : ACCOUNTS;
+  const accounts = scope === "yo" && me ? ACCOUNTS.filter((a) => a.owner.startsWith("Aldia") || a.owner === me.name) : ACCOUNTS;
   const [people, setPeople] = useState<Person[]>([]);
   const [offers, setOffers] = useState<Offer[]>([]);
   const [meetings, setMeetings] = useState<Meeting[]>([]);
@@ -84,10 +84,11 @@ export default function EstaSemanaPage() {
           <div className="flex justify-between items-start" style={{ marginBottom: "1rem", gap: "1rem" }}>
             <div>
               <h3 className="section-title">Contenido de la semana</h3>
-              <p className="section-sub">Mínimo 3 TikToks y 2 posts de LinkedIn; como mucho una publicación al día por red.</p>
+              <p className="section-sub">Posts diarios de lunes a viernes en las cuentas de Aldia y las de Guille.</p>
             </div>
             <div className="flex gap-2">
               <span className={`chip ${c.tiktok >= TARGETS.tiktok ? "chip-ok" : ""}`}>TikTok {c.tiktok}/{TARGETS.tiktok}</span>
+              <span className={`chip ${c.instagram >= TARGETS.instagram ? "chip-ok" : ""}`}>Instagram {c.instagram}/{TARGETS.instagram}</span>
               <span className={`chip ${c.linkedin >= TARGETS.linkedin ? "chip-ok" : ""}`}>LinkedIn {c.linkedin}/{TARGETS.linkedin}</span>
               {c.failed > 0 && <span className="chip chip-bad">{c.failed} sin publicar</span>}
             </div>

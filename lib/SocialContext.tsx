@@ -44,7 +44,7 @@ export default function SocialProvider({ children }: { children: ReactNode }) {
   useEffect(() => { resetTableModes(); if (user) refresh(); }, [user?.id, refresh]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const thisWeek = currentCheckinWeek();
-  const pending = !loading && ACCOUNTS.some((a) => !snapshots.some((s) => s.account === a.id && s.week_start === thisWeek));
+  const pending = !loading && ACCOUNTS.some((a) => !a.optional && !snapshots.some((s) => s.account === a.id && s.week_start === thisWeek));
 
   // al abrir la app: si falta el check-in de esta semana, se pregunta (salvo que hoy se haya pospuesto)
   useEffect(() => {
