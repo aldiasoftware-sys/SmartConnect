@@ -1427,3 +1427,5 @@ button.mx-pill:hover { filter: brightness(0.96); }
 /* Contenido: un calendario por persona (los dos visibles para los dos) */
 .cal-person { margin-bottom: 1.5rem; }
 .cal-person-head { display: flex; align-items: center; gap: 0.875rem; margin-bottom: 0.75rem; padding: 0 0.25rem; }
+.acc-num { display: block; background: none; border: 0; padding: 0; font-family: inherit; color: inherit; cursor: pointer; text-align: left; border-bottom: 2px dashed transparent; transition: var(--transition); }
+.acc-num:hover { border-bottom-color: var(--border-strong); }

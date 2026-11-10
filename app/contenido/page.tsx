@@ -6,24 +6,14 @@ import { useSocial } from "@/lib/SocialContext";
 import { DIAS, KINDS, PLATFORMS, Post, STATUSES, TARGETS, addDays, contentByWeek, fromISO, shortDate, statusOf, today, weekLabel, weekNumber, weekStart } from "@/lib/social";
 import { loadWeekTemplate } from "@/lib/content";
 import PostEditor from "@/components/PostEditor";
+import AccountsWeek from "@/components/AccountsWeek";
 import { useScope } from "@/lib/ScopeContext";
 import { TEAM, TeamMember, isShared, ownedBy } from "@/lib/team";
 
 const blank = (date: string | null, platform = "tiktok", owner = "Aldia"): Post => ({ publish_date: date, platform, kind: platform === "tiktok" ? "noticia" : "post", owner, title: "", status: "idea" });
 
-function Target({ label, done, planned, target }: { label: string; done: number; planned: number; target: number }) {
-  const slots = Math.max(target, planned);
-  return (
-    <div className="target">
-      <span style={{ width: 74, fontSize: "0.8125rem", fontWeight: 600 }}>{label}</span>
-      <div className="bar">{Array.from({ length: slots }, (_, i) => <i key={i} className={i < done ? "on" : ""} style={i >= target ? { opacity: 0.5 } : undefined} />)}</div>
-      <span style={{ fontSize: "0.8125rem", fontWeight: 600, minWidth: 92, textAlign: "right", color: done >= target ? "var(--ok)" : "var(--text-secondary)" }}>{done}/{target} publicados</span>
-    </div>
-  );
-}
-
 export default function ContenidoPage() {
-  const { posts: allPosts, refresh, local, loading } = useSocial();
+  const { posts: allPosts, snapshots, openCheckin, refresh, local, loading } = useSocial();
   const { me, scope } = useScope();
   // Un calendario por persona y los dos los ven los dos (con «Solo yo» arriba, solo el tuyo). El tuyo va primero.
   // Lo de Archivos › Alejandro cae solo en el de Millán y lo de Archivos › Guille en el de Guille (lib/contentSync.ts);
@@ -39,8 +29,6 @@ export default function ContenidoPage() {
 
   const days = Array.from({ length: 7 }, (_, i) => addDays(week, i));
   const weekPosts = posts.filter((p) => p.publish_date && p.publish_date >= week && p.publish_date <= days[6]);
-  const stats = contentByWeek(posts, [week])[0];
-  const planned = (pl: string) => weekPosts.filter((p) => p.platform === pl).length;
   // regla: 1 publicación al día por red y persona como máximo
   const crowded = people.flatMap((m) => days.flatMap((d) => ["tiktok", "linkedin"].filter((pl) => of(m)(weekPosts).filter((p) => p.publish_date === d && p.platform === pl).length > 1).map((pl) => `${DIAS[days.indexOf(d)]} de ${m.name} (${PLATFORMS[pl].label})`)));
 
@@ -78,31 +66,18 @@ export default function ContenidoPage() {
 
       {local && <div className="banner"><HardDrive /><div><b>El contenido se está guardando solo en este navegador.</b> Ejecuta <code>redes_setup.sql</code> en Supabase para compartirlo; lo que haya aquí se sube solo.</div></div>}
 
-      <div style={{ marginBottom: "1.25rem" }}>
-        <div className="card">
-          <div className="flex items-center justify-between" style={{ marginBottom: "1.25rem" }}>
-            <div className="flex items-center gap-2">
-              <button className="icon-btn" onClick={() => setWeek(addDays(week, -7))} aria-label="Semana anterior"><ChevronLeft /></button>
-              <div style={{ minWidth: 190, textAlign: "center" }}><b>Semana {weekNumber(week)}</b> <span className="text-muted text-sm">· {weekLabel(week)}</span></div>
-              <button className="icon-btn" onClick={() => setWeek(addDays(week, 7))} aria-label="Semana siguiente"><ChevronRight /></button>
-              {week !== weekStart() && <button className="btn-secondary" style={{ padding: "0.45rem 0.8rem" }} onClick={() => setWeek(weekStart())}>Hoy</button>}
-            </div>
-            <div className="flex gap-2">
-              {STATUSES.map((s) => { const n = weekPosts.filter((p) => p.status === s.id).length; return n ? <span key={s.id} className="chip"><i style={{ background: s.color }} />{s.label} {n}</span> : null; })}
-            </div>
-          </div>
-          <div className="flex flex-col gap-3">
-            <Target label="TikTok" done={stats.tiktok} planned={planned("tiktok")} target={TARGETS.tiktok} />
-            <Target label="LinkedIn" done={stats.linkedin} planned={planned("linkedin")} target={TARGETS.linkedin} />
-          </div>
-          {(stats.failed > 0 || crowded.length > 0) && (
-            <div className="flex gap-2" style={{ marginTop: "1rem", flexWrap: "wrap" }}>
-              {stats.failed > 0 && <span className="chip chip-bad"><AlertTriangle style={{ width: 13, height: 13 }} /> {stats.failed} sin publicar a su día</span>}
-              {crowded.length > 0 && <span className="chip chip-bad">Más de una publicación el {crowded.join(", ")}: máximo una al día por red</span>}
-            </div>
-          )}
+      <div className="flex items-center justify-between" style={{ marginBottom: "1rem", gap: "1rem", flexWrap: "wrap" }}>
+        <div className="flex items-center gap-2">
+          <button className="icon-btn" onClick={() => setWeek(addDays(week, -7))} aria-label="Semana anterior"><ChevronLeft /></button>
+          <div style={{ minWidth: 190, textAlign: "center" }}><b>Semana {weekNumber(week)}</b> <span className="text-muted text-sm">· {weekLabel(week)}</span></div>
+          <button className="icon-btn" onClick={() => setWeek(addDays(week, 7))} aria-label="Semana siguiente"><ChevronRight /></button>
+          {week !== weekStart() && <button className="btn-secondary" style={{ padding: "0.45rem 0.8rem" }} onClick={() => setWeek(weekStart())}>Hoy</button>}
         </div>
+        {crowded.length > 0 && <span className="chip chip-bad"><AlertTriangle style={{ width: 13, height: 13 }} /> Más de una publicación el {crowded.join(", ")}: máximo una al día por red</span>}
       </div>
+
+      {/* crecimiento de cada cuenta en esta semana (seguidores del check-in) y lo publicado del calendario */}
+      <AccountsWeek week={week} posts={posts} snapshots={snapshots} onUpdate={() => openCheckin()} />
 
       {shown.map((m) => {
         const mine = of(m)(weekPosts), n = (pl: string) => mine.filter((p) => p.platform === pl).length;
