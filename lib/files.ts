@@ -1,10 +1,11 @@
 import { supabase } from "./supabase";
 import { addDays, today, toISO } from "./social";
 
-// «Drive» de Smart Connect sobre Supabase Storage: Guille | Alejandro / AAAA-MM-DD / archivos.
+// «Drive» de Smart Connect sobre Supabase Storage: Aldia | Guille | Alejandro / AAAA-MM-DD / archivos.
+// «Aldia» es la marca (cuentas de empresa); Guille y Alejandro, sus redes personales.
 // Cada archivo vive 14 días contando el de subida: lo subido el día 1 se borra el día 14.
 export const BUCKET = "contenido";
-export const PEOPLE = ["Guille", "Alejandro"];
+export const PEOPLE = ["Aldia", "Guille", "Alejandro"];
 export const KEEP_DAYS = 14;
 
 export type StoredFile = { path: string; name: string; size: number; mime: string; created: string; person: string; date: string };

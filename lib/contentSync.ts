@@ -20,7 +20,8 @@ export const isPublishDay = (d: string) => { const w = fromISO(d).getDay(); retu
 function firstSlot(posts: Post[], platform: string, from: string, owner: string): { day: string; reuse?: Post } {
   for (let i = 0; i < 120; i++) {
     const d = addDays(from, i); if (!isPublishDay(d)) continue;
-    const there = posts.filter((p) => p.publish_date === d && p.platform === platform && (p.owner === owner || isShared(p.owner)));
+    // lo que sale de Archivos › Aldia va a las cuentas de la marca: no ocupa el hueco de la cuenta personal
+    const there = posts.filter((p) => p.publish_date === d && p.platform === platform && (p.owner === owner || (isShared(p.owner) && !p.archivo)));
     if (!there.length) return { day: d };
     const idea = there.find((p) => p.status === "idea" && !p.archivo);
     if (there.length === 1 && idea) return { day: d, reuse: idea };

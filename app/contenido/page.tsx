@@ -30,7 +30,7 @@ export default function ContenidoPage() {
   const days = Array.from({ length: 7 }, (_, i) => addDays(week, i));
   const weekPosts = posts.filter((p) => p.publish_date && p.publish_date >= week && p.publish_date <= days[6]);
   // regla: 1 publicación al día por red y persona como máximo
-  const crowded = people.flatMap((m) => days.flatMap((d) => ["tiktok", "linkedin"].filter((pl) => of(m)(weekPosts).filter((p) => p.publish_date === d && p.platform === pl).length > 1).map((pl) => `${DIAS[days.indexOf(d)]} de ${m.name} (${PLATFORMS[pl].label})`)));
+  const crowded = people.flatMap((m) => days.flatMap((d) => ["tiktok", "linkedin"].filter((pl) => of(m)(weekPosts).filter((p) => p.publish_date === d && p.platform === pl && !(isShared(p.owner) && p.archivo)).length > 1).map((pl) => `${DIAS[days.indexOf(d)]} de ${m.name} (${PLATFORMS[pl].label})`)));
 
   async function template() {
     setBusy(true); await loadWeekTemplate(week, posts); await refresh(); setBusy(false);

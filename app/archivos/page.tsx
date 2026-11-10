@@ -26,7 +26,7 @@ export default function ArchivosPage() {
   const { refresh } = useSocial();
   const { me, scope } = useScope();
   useEffect(() => { if (scope === "yo" && me) { setPerson(me.folder); setDay(null); } }, [scope, me?.folder]); // eslint-disable-line react-hooks/exhaustive-deps
-  const people = scope === "yo" && me ? [me.folder] : PEOPLE;   // al cambiar Archivos, el calendario se pone al día
+  const people = scope === "yo" && me ? ["Aldia", me.folder] : PEOPLE;   // al cambiar Archivos, el calendario se pone al día
   async function load(doSweep = false) {
     setLoading(true); setError("");
     try {
@@ -71,7 +71,7 @@ export default function ArchivosPage() {
       onDrop={(e) => { if (!hasFiles(e)) return; e.preventDefault(); setDrag(false); if (person && e.dataTransfer.files.length) send(e.dataTransfer.files); }}>
       <div className="page-header">
         <div>
-          <div className="eyebrow">Guille · Alejandro</div>
+          <div className="eyebrow">Aldia · Guille · Alejandro</div>
           <h2 className="page-title">Archivos</h2>
           <p className="page-subtitle">Lo que dejan listas las skills: vídeo, miniatura y los textos de LinkedIn, TikTok e Instagram. Cada archivo se borra solo a los {KEEP_DAYS} días.</p>
         </div>
