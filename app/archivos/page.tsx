@@ -73,7 +73,7 @@ export default function ArchivosPage() {
         <div>
           <div className="eyebrow">Aldia · Guille · Alejandro</div>
           <h2 className="page-title">Archivos</h2>
-          <p className="page-subtitle">Lo que dejan listas las skills: vídeo, miniatura y los textos de LinkedIn, TikTok e Instagram. Cada archivo se borra solo a los {KEEP_DAYS} días.</p>
+          <p className="page-subtitle">Lo que dejan listas las skills: vídeo, miniatura y los textos de LinkedIn, TikTok e Instagram. Cada archivo se borra solo cuando pasan {KEEP_DAYS} días desde que se sube.</p>
         </div>
         <div className="flex gap-3 items-center">
           <button className="btn-secondary" onClick={() => load(true)} disabled={loading}><RefreshCw style={{ width: 15, height: 15 }} /> Actualizar</button>
@@ -85,7 +85,7 @@ export default function ArchivosPage() {
       {error === "missing" ? (
         <div className="banner"><HardDrive /><div><b>Falta crear el espacio de archivos.</b> Ejecuta <code>archivos_setup.sql</code> en el SQL Editor de Supabase y pulsa «Actualizar».</div></div>
       ) : error ? <div className="banner"><HardDrive /><div>{error}</div></div> : null}
-      {swept > 0 && <div className="banner" style={{ background: "var(--ok-soft)", borderColor: "#bfe9d3", color: "#0b6b47" }}><Trash2 /><div>Barrido hecho: {swept} {swept === 1 ? "archivo tenía" : "archivos tenían"} más de {KEEP_DAYS} días y se {swept === 1 ? "ha" : "han"} borrado.</div></div>}
+      {swept > 0 && <div className="banner" style={{ background: "var(--ok-soft)", borderColor: "#bfe9d3", color: "#0b6b47" }}><Trash2 /><div>Barrido hecho: {swept} {swept === 1 ? "archivo tenía" : "archivos tenían"} {KEEP_DAYS} días o más y se {swept === 1 ? "ha" : "han"} borrado.</div></div>}
 
       <div className="flex items-center gap-2" style={{ marginBottom: "1.25rem", fontSize: "0.9375rem", flexWrap: "wrap" }}>
         <button className="btn-secondary" style={{ padding: "0.4rem 0.75rem" }} onClick={() => { setPerson(null); setDay(null); }}><FolderOpen style={{ width: 15, height: 15 }} /> Archivos</button>
@@ -135,7 +135,7 @@ export default function ArchivosPage() {
                   <div className="flex items-center justify-between" style={{ marginBottom: 14 }}>
                     <Folder style={{ width: 24, height: 24 }} />
                     <div className="flex items-center gap-2">
-                      <span className="chip"><Clock style={{ width: 12, height: 12 }} /> {shortDate(deletesOn(first))}</span>
+                      <span className="chip"><Clock style={{ width: 12, height: 12 }} /> {shortDate(deletesOn(first, d))}</span>
                       <CardMenu onDelete={() => askDelete(item)} />
                     </div>
                   </div>

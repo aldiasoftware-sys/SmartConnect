@@ -7,7 +7,7 @@ import { Kit, StoredFile, deletesOn, fmtSize, isImage, isText, isVideo, readText
 import { CardMenu } from "./Papelera";
 export { groupKits } from "@/lib/files";
 
-const daysLeft = (created: string) => Math.max(0, Math.round((fromISO(deletesOn(created)).getTime() - fromISO(today()).getTime()) / 86400000));
+const daysLeft = (created: string, date?: string) => Math.max(0, Math.round((fromISO(deletesOn(created, date)).getTime() - fromISO(today()).getTime()) / 86400000));
 
 function CopyButton({ text, label = "Copiar" }: { text: string; label?: string }) {
   const [ok, setOk] = useState(false);
@@ -18,9 +18,9 @@ function CopyButton({ text, label = "Copiar" }: { text: string; label?: string }
   );
 }
 
-const Expiry = ({ created }: { created: string }) => {
-  const left = daysLeft(created);
-  return <span className={`chip ${left <= 2 ? "chip-bad" : ""}`}><Clock style={{ width: 12, height: 12 }} /> {left === 0 ? "Se borra hoy" : `Se borra el ${shortDate(deletesOn(created))}`}</span>;
+const Expiry = ({ created, date }: { created: string; date?: string }) => {
+  const left = daysLeft(created, date);
+  return <span className={`chip ${left <= 1 ? "chip-bad" : ""}`}><Clock style={{ width: 12, height: 12 }} /> {left === 0 ? "Se borra hoy" : `Se borra el ${shortDate(deletesOn(created, date))}`}</span>;
 };
 
 async function download(f: StoredFile) { window.open(await signedUrl(f.path, true), "_blank"); }
@@ -71,7 +71,7 @@ export function KitCard({ kit, onDelete, drag }: { kit: Kit; onDelete: () => voi
             <h3>{kit.name}</h3>
           </div>
           <div className="flex items-center gap-2" style={{ flexShrink: 0 }}>
-            <Expiry created={first} />
+            <Expiry created={first} date={kit.files[0]?.date} />
             <CardMenu onDelete={onDelete} />
           </div>
         </div>
@@ -155,7 +155,7 @@ export function FileCard({ f, onDelete, drag }: { f: StoredFile; onDelete: () =>
           <b title={f.name}>{f.name}</b>
         </div>
         <div className="flex items-center justify-between" style={{ gap: 8, marginTop: 8 }}>
-          <Expiry created={f.created} /><span className="text-xs text-muted">{fmtSize(f.size)}</span>
+          <Expiry created={f.created} date={f.date} /><span className="text-xs text-muted">{fmtSize(f.size)}</span>
         </div>
         <div className="flex gap-2" style={{ marginTop: 10 }}>
           {isText(f) && text !== null && <CopyButton text={text} />}

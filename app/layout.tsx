@@ -56,7 +56,7 @@ function Header() {
   );
 }
 
-/** Barrido de Archivos al abrir la app: borra lo que ya ha cumplido sus 14 días (una vez por sesión). */
+/** Barrido de Archivos al abrir la app: borra lo que ya ha cumplido sus 3 días (una vez por sesión). */
 function SweepFiles() {
   const { user } = useAuth();
   useEffect(() => {

@@ -1,7 +1,7 @@
 -- ARCHIVOS: el «Drive» de Smart Connect (Supabase Storage)
 -- Ejecuta todo esto junto en el SQL Editor de Supabase.
 -- Estructura: Guille | Alejandro / AAAA-MM-DD / archivos
--- Cada archivo se borra solo a los 14 días contando el de subida (lo hace la app y el comando de subida).
+-- Cada archivo se borra solo cuando pasan 3 días desde el de subida (lo hace la app y el comando de subida).
 
 -- Espacio privado «contenido», hasta 50 MB por archivo
 INSERT INTO storage.buckets (id, name, public, file_size_limit)

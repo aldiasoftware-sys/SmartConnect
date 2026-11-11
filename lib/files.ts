@@ -3,10 +3,11 @@ import { addDays, today, toISO } from "./social";
 
 // «Drive» de Smart Connect sobre Supabase Storage: Aldia | Guille | Alejandro / AAAA-MM-DD / archivos.
 // «Aldia» es la marca (cuentas de empresa); Guille y Alejandro, sus redes personales.
-// Cada archivo vive 14 días contando el de subida: lo subido el día 1 se borra el día 14.
+// Cada archivo se borra cuando pasan 3 días desde el de subida: lo subido el día 11 se borra el día 14
+// (y con él su carpeta de fecha, si se queda vacía). Así no se llena el espacio de Supabase.
 export const BUCKET = "contenido";
 export const PEOPLE = ["Aldia", "Guille", "Alejandro"];
-export const KEEP_DAYS = 14;
+export const KEEP_DAYS = 3;
 
 export type StoredFile = { path: string; name: string; size: number; mime: string; created: string; person: string; date: string };
 
@@ -14,8 +15,14 @@ const store = () => supabase.storage.from(BUCKET);
 
 /** Día (local) en que se sube y día en que se borra. */
 export const uploadedOn = (created: string) => toISO(new Date(created));
-export const deletesOn = (created: string) => addDays(uploadedOn(created), KEEP_DAYS - 1);
-export const isExpired = (created: string) => today() >= deletesOn(created);
+// Se cuenta desde el día de subida o, si es posterior, desde el de su carpeta de fecha (día de publicación):
+// lo preparado por adelantado (subido el 11 para el 15) no se borra hasta el 18.
+const ISO = /^\d{4}-\d{2}-\d{2}$/;
+export const deletesOn = (created: string, date?: string) => {
+  const up = uploadedOn(created);
+  return addDays(date && ISO.test(date) && date > up ? date : up, KEEP_DAYS);
+};
+export const isExpired = (created: string, date?: string) => today() >= deletesOn(created, date);
 
 async function listDir(prefix: string) {
   const { data, error } = await store().list(prefix, { limit: 1000, sortBy: { column: "name", order: "asc" } });
@@ -48,11 +55,15 @@ export async function listAll(): Promise<StoredFile[]> {
   return out;
 }
 
-/** Barrido: borra lo que ya ha cumplido sus 14 días. Devuelve cuántos archivos ha borrado. */
+/** Barrido: borra lo que ya ha cumplido sus 3 días y las carpetas de fecha que se quedan vacías. Devuelve cuántos archivos ha borrado. */
 export async function sweep(files?: StoredFile[]) {
   const all = files || (await listAll());
-  const old = all.filter((f) => isExpired(f.created)).map((f) => f.path);
-  for (let i = 0; i < old.length; i += 100) { const { error } = await store().remove(old.slice(i, i + 100)); if (error) throw error; }
+  const old = all.filter((f) => isExpired(f.created, f.date));
+  // carpeta persona/fecha sin nada vivo → fuera también su marcador, para que la carpeta desaparezca
+  const live = new Set(all.filter((f) => !isExpired(f.created, f.date)).map((f) => `${f.person}/${f.date}`));
+  const emptied = Array.from(new Set(old.map((f) => `${f.person}/${f.date}`))).filter((d) => !live.has(d)).map((d) => `${d}/.emptyFolderPlaceholder`);
+  const paths = [...old.map((f) => f.path), ...emptied];
+  for (let i = 0; i < paths.length; i += 100) { const { error } = await store().remove(paths.slice(i, i + 100)); if (error) throw error; }
   return old.length;
 }
 
