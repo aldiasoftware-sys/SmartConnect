@@ -210,7 +210,7 @@ function Redes({ auth, flash }: { auth: Record<string, string>; flash: (m: strin
             <h3 style={{ fontWeight: 600 }}>Publicadas en el Calendario, sin avisar</h3>
             <span className="chip">{pending.length}</span>
           </div>
-          <p className="text-xs text-secondary" style={{ marginBottom: 12 }}>Las publicaciones de TikTok, Instagram, YouTube o LinkedIn marcadas como <b>Publicado</b> y con enlace aparecen aquí. Un clic y sale el aviso en su canal del Discord.</p>
+          <p className="text-xs text-secondary" style={{ marginBottom: 12 }}>Las publicaciones de TikTok, Instagram, YouTube o LinkedIn marcadas como <b>Publicado</b> y con enlace aparecen aquí. Los vídeos de TikTok e Instagram de ALDIA se avisan solos al guardar el enlace (aviso en su canal + tarjeta con pregunta en #debate-ia); aquí queda lo que no salió. Un clic y sale el aviso.</p>
           {pending.length === 0 && <div className="empty" style={{ padding: "1.5rem", textAlign: "center" }}><p className="text-sm text-secondary">Todo avisado. 🎉</p></div>}
           {pending.map((p) => (
             <div key={p.id} className="flex justify-between items-center" style={{ gap: 12, padding: "10px 0", borderTop: "1px solid var(--border-color)" }}>

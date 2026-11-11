@@ -6,6 +6,8 @@ import { KINDS, PLATFORMS, Post, STATUSES } from "@/lib/social";
 import { deleteRow, saveRow } from "@/lib/store";
 import { discard } from "@/lib/files";
 import Portal from "./Portal";
+import { useAuth } from "@/lib/AuthContext";
+import { autoNotifyDiscord, wantsDiscordAuto } from "@/lib/discordAuto";
 
 const KINDS_BY_PLATFORM: Record<string, string[]> = {
   tiktok: ["video", "noticia", "automatizacion", "tutorial", "caso"],
@@ -21,11 +23,18 @@ export default function PostEditor({ post, onClose, onSaved }: { post: Post; onC
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const set = (k: keyof Post, v: any) => setP({ ...p, [k]: v });
+  const { session } = useAuth();
 
   async function save(next = p) {
     if (!next.title.trim()) { setError("Ponle un título."); return; }
     setSaving(true);
-    try { await saveRow<Post>("content_posts", { ...next, publish_date: next.publish_date || null }); onSaved(); onClose(); }
+    // pegar el enlace de un vídeo de ALDIA lo da por publicado y lo avisa solo en Discord
+    if (wantsDiscordAuto(next) && next.status !== "publicado") next = { ...next, status: "publicado" };
+    try {
+      const saved = await saveRow<Post>("content_posts", { ...next, publish_date: next.publish_date || null });
+      if (wantsDiscordAuto(saved)) await autoNotifyDiscord(saved, session?.access_token);
+      onSaved(); onClose();
+    }
     catch (e: any) { setError(e?.message || "No se ha podido guardar."); setSaving(false); }
   }
   async function remove() {
@@ -83,7 +92,10 @@ export default function PostEditor({ post, onClose, onSaved }: { post: Post; onC
                 <input value={p.keyword || ""} onChange={(e) => set("keyword", e.target.value.toUpperCase())} placeholder="p. ej. FACTURAS" /></div>
             )}
             <div className="form-group"><label>Enlace (cuando esté publicado)</label>
-              <input value={p.url || ""} onChange={(e) => set("url", e.target.value)} placeholder="https://" /></div>
+              <input value={p.url || ""} onChange={(e) => set("url", e.target.value)} placeholder="https://" />
+              {["tiktok", "instagram"].includes(p.platform) && p.owner !== "Guille" && !(p as any).discord_notified_at &&
+                <small className="text-muted text-xs">Al guardar con el enlace, se avisa solo en el Discord (#{p.platform} y tarjeta con pregunta en #debate-ia).</small>}
+              {(p as any).discord_notified_at && <small className="text-muted text-xs">Ya avisado en Discord ✅</small>}</div>
             <div className="form-group" style={{ marginBottom: 0 }}><label>Notas / guion</label>
               <textarea rows={3} value={p.notes || ""} onChange={(e) => set("notes", e.target.value)} /></div>
             {error && <p style={{ color: "var(--bad)", fontSize: "0.8125rem", marginTop: "0.75rem" }}>{error}</p>}

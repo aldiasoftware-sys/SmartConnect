@@ -13,3 +13,5 @@ CREATE TABLE IF NOT EXISTS discord_snapshots (
 );
 
 ALTER TABLE content_posts ADD COLUMN IF NOT EXISTS discord_notified_at timestamptz;
+-- mensaje de la tarjeta del vídeo en #debate-ia (para añadirle el botón de la otra red cuando llegue su enlace)
+ALTER TABLE content_posts ADD COLUMN IF NOT EXISTS discord_card_id text;

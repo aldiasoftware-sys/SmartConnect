@@ -37,6 +37,7 @@ export const SOCIAL_CHANNELS: Record<string, { id: string; label: string; emoji:
   linkedin: { id: "1568729998372765961", label: "LinkedIn", emoji: "💼" },
 };
 export const ANNOUNCEMENTS_ID = "1568721931073491004";
+export const DEBATE_ID = "1568721988317483071";   // 🧠・debate-ia: aquí van las tarjetas de los vídeos, con su hilo para comentar
 export const ACCENT = 0xc82828;
 
 export async function discord<T = any>(env: Env, path: string, init: { method?: string; body?: unknown } = {}): Promise<T> {
@@ -51,6 +52,27 @@ export async function discord<T = any>(env: Env, path: string, init: { method?: 
       },
       body: init.body === undefined ? undefined : JSON.stringify(init.body),
     });
+    if (res.status === 429) {
+      const wait = Number(((await res.json().catch(() => ({}))) as any).retry_after || 1);
+      await new Promise((r) => setTimeout(r, Math.min(wait, 5) * 1000 + 200));
+      continue;
+    }
+    const text = await res.text();
+    if (!res.ok) throw Object.assign(new Error(`Discord ${res.status}: ${text.slice(0, 200)}`), { status: res.status });
+    return (text ? JSON.parse(text) : null) as T;
+  }
+  throw new Error("Discord: demasiadas peticiones, prueba en un minuto");
+}
+
+/** Igual que discord() pero con archivos adjuntos (multipart): los componentes los citan como «attachment://nombre». */
+export async function discordForm<T = any>(env: Env, path: string, method: string, payload: any, files: { name: string; data: ArrayBuffer; type: string }[]): Promise<T> {
+  if (!env.DISCORD_BOT_TOKEN) throw Object.assign(new Error("Falta DISCORD_BOT_TOKEN en Cloudflare"), { status: 503 });
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const form = new FormData();
+    form.append("payload_json", JSON.stringify({ ...payload, attachments: files.map((f, i) => ({ id: i, filename: f.name })) }));
+    files.forEach((f, i) => form.append(`files[${i}]`, new Blob([f.data], { type: f.type }), f.name));
+    const res = await fetch(`https://discord.com/api/v10${path}`, { method, body: form,
+      headers: { authorization: `Bot ${env.DISCORD_BOT_TOKEN}`, "user-agent": "DiscordBot (https://aldiaproject.es, 1.0)" } });
     if (res.status === 429) {
       const wait = Number(((await res.json().catch(() => ({}))) as any).retry_after || 1);
       await new Promise((r) => setTimeout(r, Math.min(wait, 5) * 1000 + 200));

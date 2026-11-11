@@ -40,6 +40,11 @@ async function db(env2, path, init = {}) {
   if (!res.ok) throw new Error(`Supabase ${res.status}: ${text.slice(0, 300)}`);
   return text ? JSON.parse(text) : null;
 }
+async function storageGet(env2, bucket, path) {
+  const enc = path.split("/").map(encodeURIComponent).join("/");
+  const res = await fetch(`${env2.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/${bucket}/${enc}`, { headers: adminHeaders(env2) });
+  return res.ok ? res.arrayBuffer() : null;
+}
 async function teamUser(ctx) {
   const auth = ctx.request.headers.get("authorization") || "";
   if (!/^Bearer\s+\S+/.test(auth)) return null;
@@ -62,6 +67,8 @@ var SOCIAL_CHANNELS = {
   linkedin: { id: "1568729998372765961", label: "LinkedIn", emoji: "\u{1F4BC}" }
 };
 var ANNOUNCEMENTS_ID = "1568721931073491004";
+var DEBATE_ID = "1568721988317483071";
+var ACCENT = 13117480;
 async function discord(env2, path, init = {}) {
   if (!env2.DISCORD_BOT_TOKEN) throw Object.assign(new Error("Falta DISCORD_BOT_TOKEN en Cloudflare"), { status: 503 });
   for (let attempt = 0; attempt < 3; attempt++) {
@@ -85,34 +92,128 @@ async function discord(env2, path, init = {}) {
   }
   throw new Error("Discord: demasiadas peticiones, prueba en un minuto");
 }
+async function discordForm(env2, path, method, payload, files) {
+  if (!env2.DISCORD_BOT_TOKEN) throw Object.assign(new Error("Falta DISCORD_BOT_TOKEN en Cloudflare"), { status: 503 });
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const form = new FormData();
+    form.append("payload_json", JSON.stringify({ ...payload, attachments: files.map((f, i) => ({ id: i, filename: f.name })) }));
+    files.forEach((f, i) => form.append(`files[${i}]`, new Blob([f.data], { type: f.type }), f.name));
+    const res = await fetch(`https://discord.com/api/v10${path}`, {
+      method,
+      body: form,
+      headers: { authorization: `Bot ${env2.DISCORD_BOT_TOKEN}`, "user-agent": "DiscordBot (https://aldiaproject.es, 1.0)" }
+    });
+    if (res.status === 429) {
+      const wait = Number((await res.json().catch(() => ({}))).retry_after || 1);
+      await new Promise((r) => setTimeout(r, Math.min(wait, 5) * 1e3 + 200));
+      continue;
+    }
+    const text = await res.text();
+    if (!res.ok) throw Object.assign(new Error(`Discord ${res.status}: ${text.slice(0, 200)}`), { status: res.status });
+    return text ? JSON.parse(text) : null;
+  }
+  throw new Error("Discord: demasiadas peticiones, prueba en un minuto");
+}
 function errorResponse(e) {
   return json({ ok: false, error: e?.message || "Error" }, e?.status && e.status < 600 ? e.status === 503 ? 503 : 502 : 500);
 }
 
 // functions/api/discord/social.ts
+var BUCKET = "contenido";
+var VIDEO_PLATFORMS = ["tiktok", "instagram"];
+var isAldia = (p) => p.owner !== "Guille";
+var BTN = {
+  tiktok: { label: "Ver en TikTok", emoji: "\u{1F3B5}" },
+  instagram: { label: "Ver en Instagram", emoji: "\u{1F4F8}" }
+};
 async function onRequestPost(ctx) {
   if (!await teamUser(ctx)) return json({ ok: false, error: "Solo para el equipo" }, 401);
   const b = await ctx.request.json().catch(() => ({}));
-  const ch = SOCIAL_CHANNELS[(b.platform || "").toLowerCase()];
-  const url = (b.url || "").trim();
-  if (!ch) return json({ ok: false, error: "Red sin canal en Discord" }, 400);
-  if (!/^https?:\/\/\S+$/i.test(url)) return json({ ok: false, error: "Enlace no v\xE1lido" }, 400);
-  const text = (b.text || "").trim().slice(0, 500);
-  const content = `${ch.emoji} **Nueva publicaci\xF3n en ${ch.label}**${text ? `
-${text}` : ""}
-${url}`;
   try {
+    let post = null;
     if (b.post_id) {
-      const rows = await db(ctx.env, `content_posts?id=eq.${encodeURIComponent(b.post_id)}&select=discord_notified_at`);
-      if (rows[0]?.discord_notified_at) return json({ ok: false, error: "Esta publicaci\xF3n ya se avis\xF3 en Discord" }, 409);
+      const rows = await db(ctx.env, `content_posts?id=eq.${encodeURIComponent(b.post_id)}&select=*`);
+      post = rows[0] || null;
+      if (!post) return json({ ok: false, error: "No encuentro esa publicaci\xF3n" }, 404);
+      if (post.discord_notified_at) return b.auto ? json({ ok: true, skipped: true }) : json({ ok: false, error: "Esta publicaci\xF3n ya se avis\xF3 en Discord" }, 409);
     }
+    const platform = (post?.platform || b.platform || "").toLowerCase();
+    const url = (post?.url || b.url || "").trim();
+    const ch = SOCIAL_CHANNELS[platform];
+    if (!ch) return json({ ok: false, error: "Red sin canal en Discord" }, 400);
+    if (!/^https?:\/\/\S+$/i.test(url)) return json({ ok: false, error: "Enlace no v\xE1lido" }, 400);
+    const title = (post?.title || b.text || "").trim().slice(0, 300);
+    const card = post && VIDEO_PLATFORMS.includes(platform) && isAldia(post) ? await videoCard(ctx, post) : null;
+    const more = card ? `
+\u{1F4AC} De qu\xE9 va y debate: https://discord.com/channels/1568717330437902386/${DEBATE_ID}/${card}` : "";
+    const content = `${ch.emoji} **Nuevo v\xEDdeo en ${ch.label}**${title ? `: ${title}` : ""}
+${url}${more}`;
     const msg = await discord(ctx.env, `/channels/${ch.id}/messages`, { method: "POST", body: { content, allowed_mentions: { parse: [] } } });
     if (b.also_announce) await discord(ctx.env, `/channels/${ANNOUNCEMENTS_ID}/messages`, { method: "POST", body: { content, allowed_mentions: { parse: [] } } });
-    if (b.post_id) await db(ctx.env, `content_posts?id=eq.${encodeURIComponent(b.post_id)}`, { method: "PATCH", body: { discord_notified_at: (/* @__PURE__ */ new Date()).toISOString() } });
-    return json({ ok: true, id: msg.id });
+    if (post) await db(ctx.env, `content_posts?id=eq.${encodeURIComponent(post.id)}`, { method: "PATCH", body: { discord_notified_at: (/* @__PURE__ */ new Date()).toISOString() } });
+    return json({ ok: true, id: msg.id, card });
   } catch (e) {
     return errorResponse(e);
   }
+}
+async function videoCard(ctx, post) {
+  const env2 = ctx.env;
+  const siblings = post.archivo ? await db(env2, `content_posts?archivo=eq.${encodeURIComponent(post.archivo)}&select=*`).catch(() => [post]) : [post];
+  const all = siblings.some((s) => s.id === post.id) ? siblings.map((s) => s.id === post.id ? post : s) : [...siblings, post];
+  const links = VIDEO_PLATFORMS.map((p) => all.find((s) => s.platform === p && s.url && /^https?:\/\//i.test(s.url))).filter(Boolean).map((s) => ({ platform: s.platform, url: s.url.trim() }));
+  const existing = all.map((s) => s.discord_card_id).find(Boolean) || null;
+  const txt = post.archivo ? await storageGet(env2, BUCKET, `${post.archivo} - Instagram descripcion.txt`) : null;
+  const info = parseCaption(txt ? new TextDecoder().decode(txt) : "", post.title);
+  const thumb = post.archivo ? await storageGet(env2, BUCKET, `${post.archivo} - miniatura LinkedIn.png`) : null;
+  const hasThumb = !!thumb || !!existing;
+  const components = [cardBody(info, links, hasThumb)];
+  if (existing) {
+    try {
+      await discord(env2, `/channels/${DEBATE_ID}/messages/${existing}`, { method: "PATCH", body: { flags: 1 << 15, components } });
+      return existing;
+    } catch {
+    }
+  }
+  const payload = { flags: 1 << 15, components: thumb ? components : [cardBody(info, links, false)], allowed_mentions: { parse: [] } };
+  const msg = thumb ? await discordForm(env2, `/channels/${DEBATE_ID}/messages`, "POST", payload, [{ name: "miniatura.png", data: thumb, type: "image/png" }]) : await discord(env2, `/channels/${DEBATE_ID}/messages`, { method: "POST", body: payload });
+  await discord(env2, `/channels/${DEBATE_ID}/messages/${msg.id}/threads`, {
+    method: "POST",
+    body: { name: `\u{1F4AC} ${info.headline}`.slice(0, 100), auto_archive_duration: 4320 }
+  }).catch(() => null);
+  const ids = all.map((s) => s.id).filter(Boolean);
+  await db(env2, `content_posts?id=in.(${ids.map(encodeURIComponent).join(",")})`, { method: "PATCH", body: { discord_card_id: msg.id } }).catch(() => null);
+  return msg.id;
+}
+function parseCaption(text, title) {
+  const lines = text.split(/\n+/).map((l) => l.trim()).filter(Boolean).filter((l) => !l.startsWith("#") && !/discord|enlace en (el|la) (perfil|bio)|link en (la )?bio/i.test(l));
+  const qi = lines.map((l) => l.includes("\xBF")).lastIndexOf(true);
+  let question = "";
+  if (qi >= 0) {
+    const l = lines[qi];
+    question = l.slice(l.indexOf("\xBF"), l.lastIndexOf("?") + 1 || void 0).trim();
+  }
+  const hook = (lines[0] && lines[0] !== lines[qi] ? lines[0] : "") || title;
+  const body = lines.slice(1, qi >= 0 ? qi : void 0).join(" ");
+  return { headline: (title || hook).replace(/\s*#\S+/g, "").trim() || "Nuevo v\xEDdeo", hook, summary: clip(body, 520), question: question || "\xBFT\xFA qu\xE9 opinas?" };
+}
+function clip(s, max) {
+  if (s.length <= max) return s;
+  const cut = s.slice(0, max);
+  const end = Math.max(cut.lastIndexOf(". "), cut.lastIndexOf(": "));
+  return end > max * 0.4 ? cut.slice(0, end + 1) : cut.replace(/\s+\S*$/, "") + "\u2026";
+}
+function cardBody(info, links, thumb) {
+  const head = { type: 10, content: `-# \u{1F3AC} NUEVO V\xCDDEO DE ALDIA
+## ${info.headline}
+${info.hook !== info.headline ? info.hook : ""}`.trim() };
+  const comps = [thumb ? { type: 9, components: [head], accessory: { type: 11, media: { url: "attachment://miniatura.png" } } } : head];
+  if (info.summary) comps.push({ type: 10, content: info.summary });
+  comps.push({ type: 14, divider: true, spacing: 1 });
+  comps.push({ type: 10, content: `### \u{1F4AC} ${info.question}
+Responde en el hilo de abajo \u{1F447} y si te ha servido, dale like y comp\xE1rtelo.` });
+  if (links.length) comps.push({ type: 1, components: links.map((l) => ({ type: 2, style: 5, label: BTN[l.platform].label, emoji: { name: BTN[l.platform].emoji }, url: l.url })) });
+  comps.push({ type: 10, content: "-# ALDIA \xB7 Noticias de IA cada d\xEDa" });
+  return { type: 17, accent_color: ACCENT, components: comps };
 }
 
 // vercel-api/discord/social.ts

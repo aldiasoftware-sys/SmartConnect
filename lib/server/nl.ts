@@ -49,6 +49,13 @@ export async function db<T = any>(env: Env, path: string, init: { method?: strin
   return (text ? JSON.parse(text) : null) as T;
 }
 
+/** Descarga un archivo de Supabase Storage con la clave secreta (null si no existe). */
+export async function storageGet(env: Env, bucket: string, path: string): Promise<ArrayBuffer | null> {
+  const enc = path.split("/").map(encodeURIComponent).join("/");
+  const res = await fetch(`${env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/${bucket}/${enc}`, { headers: adminHeaders(env) });
+  return res.ok ? res.arrayBuffer() : null;
+}
+
 /** ¿Quien llama es del equipo? Comprueba su sesión de Supabase con is_team() y devuelve su email. */
 export async function teamUser(ctx: Ctx): Promise<string | null> {
   const auth = ctx.request.headers.get("authorization") || "";
