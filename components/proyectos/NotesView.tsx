@@ -92,7 +92,7 @@ export default function NotesView({ projectId, notes, tasks, author, save, remov
                 </div>
                 {n.title && <h5>{n.title}</h5>}
                 <div className="pj-note-body">{n.body}</div>
-                {task && <button className="btn-ghost" style={{ marginTop: 8, padding: "0.25rem 0.5rem" }} onClick={() => openTask(task)}><Link2 style={{ width: 13, height: 13 }} /> {task.title}</button>}
+                {task && <button className="pj-link" style={{ marginTop: 6 }} onClick={() => openTask(task)}><Link2 /> {task.title}</button>}
               </div>
             </div>
           );
@@ -115,7 +115,7 @@ export default function NotesView({ projectId, notes, tasks, author, save, remov
           })}
         </div>
         <label className="text-sm flex items-center gap-2" style={{ marginTop: "1rem", cursor: "pointer" }}>
-          <input type="checkbox" checked={showResolved} onChange={(e) => setShowResolved(e.target.checked)} /> Ver también las resueltas
+          <input type="checkbox" className="pj-chk" checked={showResolved} onChange={(e) => setShowResolved(e.target.checked)} /> Ver también las resueltas
         </label>
       </div>
     </div>

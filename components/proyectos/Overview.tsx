@@ -65,7 +65,7 @@ export default function Overview({ project, tasks, notes, openTask, goArea, goTa
         <>
           <div className="flex justify-between items-center" style={{ margin: "0.5rem 0 0.875rem" }}>
             <h3 className="section-title">Áreas</h3>
-            <button className="btn-ghost" onClick={() => goTab("cronograma")}>Ver cronograma <ArrowRight style={{ width: 15, height: 15 }} /></button>
+            <button className="pj-link" onClick={() => goTab("cronograma")}>Ver cronograma <ArrowRight /></button>
           </div>
           <div className="pj-areas" style={{ marginBottom: "1.75rem" }}>
             {areas.map((a) => {
@@ -166,7 +166,7 @@ export default function Overview({ project, tasks, notes, openTask, goArea, goTa
                   </div>
                 ))}
               </div>
-              {questions.length + risks.length > 7 && <button className="btn-ghost" style={{ marginTop: 8 }} onClick={() => goTab("notas")}>Ver las {questions.length + risks.length} <ArrowRight style={{ width: 14, height: 14 }} /></button>}
+              {questions.length + risks.length > 7 && <button className="pj-link" style={{ marginTop: 8 }} onClick={() => goTab("notas")}>Ver las {questions.length + risks.length} <ArrowRight /></button>}
             </div>
           )}
         </div>

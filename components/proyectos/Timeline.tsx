@@ -75,7 +75,7 @@ export default function Timeline({ tasks, areas, openTask, quickSave }: Props) {
           {areas.map((a) => <span key={a.name} className="chip"><i style={{ background: a.color }} />{a.name}</span>)}
         </div>
         <div style={{ flex: 1 }} />
-        <label className="text-sm flex items-center gap-2" style={{ cursor: "pointer" }}><input type="checkbox" checked={hideDone} onChange={(e) => setHideDone(e.target.checked)} /> Ocultar hechas</label>
+        <label className="text-sm flex items-center gap-2" style={{ cursor: "pointer", whiteSpace: "nowrap" }}><input type="checkbox" className="pj-chk" checked={hideDone} onChange={(e) => setHideDone(e.target.checked)} /> Ocultar hechas</label>
         <button className="btn-secondary" onClick={() => setClosed(Object.fromEntries(allAreas.map((a) => [a.name, !Object.values(closed).some(Boolean)])))} style={{ padding: "0.5rem 0.875rem" }}>
           {Object.values(closed).some(Boolean) ? "Desplegar todo" : "Plegar todo"}</button>
         <button className="btn-secondary" onClick={scrollToToday} style={{ padding: "0.5rem 0.875rem" }}><Crosshair style={{ width: 15, height: 15 }} /> Hoy</button>
@@ -116,8 +116,8 @@ export default function Timeline({ tasks, areas, openTask, quickSave }: Props) {
                 const d = addDays(start, k);
                 return <div key={d} className={`gantt-day ${d === t ? "today" : ""}`} style={{ left: k * dayW, width: dayW }}><span>{fromISO(d).getDate()}</span></div>;
               }) : weeks.filter((w) => fromISO(w).getDate() <= 7).map((w) => (
-                <div key={`m-${w}`} className="gantt-day" style={{ left: xOf(w), width: 7 * dayW * 4, justifyContent: "flex-start", paddingLeft: 8, fontWeight: 600, textTransform: "capitalize" }}>
-                  {fromISO(w).toLocaleDateString("es-ES", { month: "long", year: "numeric" })}</div>
+                <div key={`m-${w}`} className="gantt-day" style={{ left: xOf(w), width: 7 * dayW * 4, justifyContent: "flex-start", paddingLeft: 8, fontWeight: 600 }}>
+                  {(() => { const m = fromISO(w).toLocaleDateString("es-ES", { month: "long", year: "numeric" }); return m[0].toUpperCase() + m.slice(1); })()}</div>
               ))}
             </div>
             <div style={{ position: "relative" }}>
@@ -153,10 +153,10 @@ export default function Timeline({ tasks, areas, openTask, quickSave }: Props) {
                       style={{ left: left + 2, width: Math.max(width - 4, 10), outline: late ? "2px solid var(--bad)" : "none", outlineOffset: 1, touchAction: "none", opacity: it.status === "hecho" ? 0.6 : 1 }}>
                       <span className="bg" style={{ background: r.soft }} />
                       <span className="fill" style={{ width: `${prog}%`, background: r.color, opacity: 0.35 }} />
-                      <span style={{ overflow: "hidden", textOverflow: "ellipsis", cursor: "grab" }}>{width > 90 ? it.title : ""}</span>
+                      <span style={{ overflow: "hidden", textOverflow: "ellipsis", cursor: "grab" }}>{width > 170 ? it.title : ""}</span>
                       <span onPointerDown={(e) => drag(e, it, "end")} style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 9, cursor: "ew-resize", borderRight: `3px solid ${r.color}` }} />
                     </div>
-                    {width <= 90 && <span style={{ position: "absolute", left: left + width + 6, top: 17, fontSize: "0.75rem", fontWeight: 600, whiteSpace: "nowrap", color: "var(--text-secondary)" }}>{it.title}</span>}
+                    {width <= 170 && <span style={{ position: "absolute", left: left + width + 6, top: 17, fontSize: "0.75rem", fontWeight: 600, whiteSpace: "nowrap", color: "var(--text-secondary)" }}>{it.title}</span>}
                   </div>
                 );
               })}
