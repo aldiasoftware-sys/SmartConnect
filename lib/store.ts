@@ -1,10 +1,11 @@
 import { supabase } from "./supabase";
 
 // Almacén de las secciones nuevas: Supabase si la tabla existe; si no, este navegador (y se sube solo cuando aparezca).
-export type Table = "social_snapshots" | "social_plans" | "gantt_items" | "content_posts" | "community_people" | "offers" | "app_settings";
+export type Table = "social_snapshots" | "social_plans" | "gantt_items" | "content_posts" | "community_people" | "offers" | "app_settings" | "projects" | "project_tasks" | "project_notes";
 const CONFLICT: Record<Table, string> = {
   social_snapshots: "week_start,account", social_plans: "week_start,account", gantt_items: "id",
   content_posts: "id", community_people: "id", offers: "id", app_settings: "key",
+  projects: "id", project_tasks: "id", project_notes: "id",
 };
 const LOCAL = (t: Table) => `aldia_local_${t}`;
 const readLocal = <T,>(t: Table): T[] => { try { return JSON.parse(localStorage.getItem(LOCAL(t)) || "[]"); } catch { return []; } };

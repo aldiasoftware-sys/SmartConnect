@@ -75,6 +75,11 @@ Prioridad: 1) Contenido · 2) CRM · 3) Cuadro semanal y metas · 4) Registro de
 - Resend gratis: 100 correos/día y 3.000/mes; al pasar de ~100 suscriptores, plan Pro. Resend también lo usará ALDIA Reviews.
 - Metas: 50 (S4, 6-dic) · 150 (S8, 3-ene) · 300 (S12, 31-ene). Quincenal hasta el 6-dic, semanal después; sale el viernes.
 
+## Proyectos (13-11, sustituye a Planificación)
+- `/proyectos` (menú Equipo): portada con todos los proyectos y cronograma común; ficha con pestañas Resumen · Tareas (lista por áreas y tablero) · Cronograma (Gantt por áreas con hitos, se arrastra) · Notas (nota, decisión, pregunta, riesgo, reunión, análisis) · Roles (si el proyecto tiene matriz). `/planificacion` redirige aquí.
+- Tablas: `proyectos_setup.sql` (projects, project_tasks, project_notes; trae su propia política «Solo equipo»). Se genera con `python3 scripts/proyectos_seed.py`, que también carga el plan «Renovación app F&T» y pasa lo de gantt_items a «Equipo ALDIA · Interno». Se puede ejecutar varias veces.
+- Áreas, principios y matriz de roles van en `projects.meta` (JSON). Tipos y cálculos en `lib/projects.ts`; vistas en `components/proyectos/`.
+
 ## Banco de ideas de contenido
 - Lunes: noticia para pymes · herramienta nueva · resumen del mes · normativa IA.
 - Martes (palabra): FACTURAS · WHATSAPP · CITAS · PLAZOS · PRESUPUESTO · RESEÑAS · COBROS · LEADS · INFORME · EMAIL.

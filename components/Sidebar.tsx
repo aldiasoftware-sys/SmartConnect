@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Home, CalendarRange, Share2, Users, Inbox, Briefcase, Video, CircleDollarSign, LineChart,
-  GanttChart, UserCog, CalendarDays, KeySquare, FolderOpen, Mail, MessagesSquare,
+  FolderKanban, UserCog, CalendarDays, KeySquare, FolderOpen, Mail, MessagesSquare,
 } from "lucide-react";
 
 // Organizado como el Roadmap de arranque: atraer (contenido) → capturar y nutrir (comunidad) → convertir (comercial); y el equipo.
@@ -30,7 +30,7 @@ export const NAV_SECTIONS = [
     { name: "Analítica", href: "/analitica", icon: LineChart },
   ] },
   { title: "Equipo", items: [
-    { name: "Planificación", href: "/planificacion", icon: GanttChart },
+    { name: "Proyectos", href: "/proyectos", icon: FolderKanban, isNew: true },
     { name: "Equipo", href: "/equipo", icon: UserCog },
     { name: "Suscripciones", href: "/suscripciones", icon: CalendarDays },
     { name: "Credenciales", href: "/credenciales", icon: KeySquare },
@@ -55,7 +55,7 @@ export default function Sidebar() {
           {section.title && <p className="nav-section">{section.title}</p>}
           <nav className="nav-list">
             {section.items.map((item) => {
-              const isActive = pathname === item.href;
+              const isActive = pathname === item.href || (item.href !== "/" && pathname?.startsWith(item.href + "/"));
               return (
                 <Link key={item.href} href={item.href} className={`nav-link ${isActive ? "active" : ""}`} title={item.name}>
                   <item.icon />
