@@ -1,11 +1,12 @@
 // Las dos cuentas del panel. El email es el de la cuenta en Supabase → Authentication → Users
 // (y el mismo que hay en team_access, ver seguridad_rls.sql). Se configuran en .env.local / Cloudflare Pages.
 // owner: como aparece en el calendario · folder: su carpeta en Archivos · linkedin: su cuenta en Redes.
-export type TeamMember = { id: "guille" | "millan"; name: string; email: string; owner: string; folder: string; linkedin: string };
+// soloLoSuyo: su calendario enseña solo lo de su carpeta de Archivos (no lo de la cuenta conjunta Aldia).
+export type TeamMember = { id: "guille" | "millan"; name: string; email: string; owner: string; folder: string; linkedin: string; soloLoSuyo?: boolean };
 
 export const TEAM: TeamMember[] = [
   { id: "guille", name: "Guille", email: process.env.NEXT_PUBLIC_EMAIL_GUILLE || "", owner: "Guille", folder: "Guille", linkedin: "linkedin_guille" },
-  { id: "millan", name: "Millán", email: process.env.NEXT_PUBLIC_EMAIL_MILLAN || "", owner: "Millán", folder: "Alejandro", linkedin: "linkedin_millan" },
+  { id: "millan", name: "Millán", email: process.env.NEXT_PUBLIC_EMAIL_MILLAN || "", owner: "Millán", folder: "Alejandro", linkedin: "linkedin_millan", soloLoSuyo: true },
 ];
 
 export const memberByEmail = (email?: string | null) =>

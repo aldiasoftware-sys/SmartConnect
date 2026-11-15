@@ -22,7 +22,8 @@ export default function ContenidoPage() {
   const people: TeamMember[] = me ? [me, ...TEAM.filter((m) => m.id !== me.id)] : TEAM;
   const shown = scope === "yo" && me ? [me] : people;
   const posts = allPosts;
-  const of = (m: TeamMember) => (list: Post[]) => list.filter((p) => ownedBy(p.owner, m) || isShared(p.owner));
+  // Millán ve en el suyo solo lo de Archivos › Millán; lo de la cuenta conjunta sale en el de Guille
+  const of = (m: TeamMember) => (list: Post[]) => list.filter((p) => ownedBy(p.owner, m) || (!m.soloLoSuyo && isShared(p.owner)));
   const [week, setWeek] = useState(weekStart());
   const [editing, setEditing] = useState<Post | null>(null);
   const [busy, setBusy] = useState(false);
