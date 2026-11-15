@@ -3,7 +3,7 @@
 import { DragEvent, useEffect, useRef, useState } from "react";
 import { Folder, FolderOpen, ChevronRight, Upload, Trash2, Clock, HardDrive, RefreshCw, Film } from "lucide-react";
 import { DIAS, fromISO, shortDate, today } from "@/lib/social";
-import { KEEP_DAYS, PEOPLE, StoredFile, bucketExists, deletesOn, fmtSize, isVideo, listAll, remove, sweep, upload } from "@/lib/files";
+import { KEEP_DAYS, PEOPLE, StoredFile, folderLabel, bucketExists, deletesOn, fmtSize, isVideo, listAll, remove, sweep, upload } from "@/lib/files";
 import { FileCard, KitCard, groupKits } from "@/components/ArchivosKit";
 import { CardMenu, Papelera, TrashItem, trashDrag } from "@/components/Papelera";
 import { useSocial } from "@/lib/SocialContext";
@@ -26,7 +26,7 @@ export default function ArchivosPage() {
   const { refresh } = useSocial();
   const { me, scope } = useScope();
   useEffect(() => { if (scope === "yo" && me) { setPerson(me.folder); setDay(null); } }, [scope, me?.folder]); // eslint-disable-line react-hooks/exhaustive-deps
-  const people = scope === "yo" && me ? ["Aldia", me.folder] : PEOPLE;   // al cambiar Archivos, el calendario se pone al día
+  const people = (scope === "yo" && me ? ["Aldia", me.folder] : PEOPLE).filter((p) => PEOPLE.includes(p));   // al cambiar Archivos, el calendario se pone al día
   async function load(doSweep = false) {
     setLoading(true); setError("");
     try {
@@ -41,6 +41,20 @@ export default function ArchivosPage() {
     setLoading(false);
   }
   useEffect(() => { load(true); }, []);
+
+  // desde el Calendario: ?abrir=persona/fecha/pieza → esa carpeta, ese día y ese vídeo resaltado
+  const [destacado, setDestacado] = useState<string | null>(null);
+  useEffect(() => {
+    const a = new URLSearchParams(window.location.search).get("abrir");
+    if (!a) return;
+    const [p, d, ...k] = a.split("/");
+    if (p && d) { setPerson(p); setDay(d); setDestacado(k.join("/") || null); }
+  }, []);
+  useEffect(() => {
+    if (!destacado || loading) return;
+    const el = document.getElementById(`kit-${destacado}`);
+    if (el) { el.scrollIntoView({ behavior: "smooth", block: "start" }); const t = setTimeout(() => setDestacado(null), 2600); return () => clearTimeout(t); }
+  }, [destacado, loading, day]);
 
   async function send(list: FileList | File[]) {
     if (!person) return;
@@ -71,7 +85,7 @@ export default function ArchivosPage() {
       onDrop={(e) => { if (!hasFiles(e)) return; e.preventDefault(); setDrag(false); if (person && e.dataTransfer.files.length) send(e.dataTransfer.files); }}>
       <div className="page-header">
         <div>
-          <div className="eyebrow">Aldia · Guille · Alejandro</div>
+          <div className="eyebrow">Aldia · Millán</div>
           <h2 className="page-title">Archivos</h2>
           <p className="page-subtitle">Lo que dejan listas las skills: vídeo, miniatura y los textos de LinkedIn, TikTok e Instagram. Cada archivo se borra solo cuando pasan {KEEP_DAYS} días desde que se sube.</p>
         </div>
@@ -89,12 +103,12 @@ export default function ArchivosPage() {
 
       <div className="flex items-center gap-2" style={{ marginBottom: "1.25rem", fontSize: "0.9375rem", flexWrap: "wrap" }}>
         <button className="btn-secondary" style={{ padding: "0.4rem 0.75rem" }} onClick={() => { setPerson(null); setDay(null); }}><FolderOpen style={{ width: 15, height: 15 }} /> Archivos</button>
-        {person && <><ChevronRight style={{ width: 15, height: 15, color: "var(--text-muted)" }} /><button className="btn-secondary" style={{ padding: "0.4rem 0.75rem" }} onClick={() => setDay(null)}>{person}</button></>}
+        {person && <><ChevronRight style={{ width: 15, height: 15, color: "var(--text-muted)" }} /><button className="btn-secondary" style={{ padding: "0.4rem 0.75rem" }} onClick={() => setDay(null)}>{folderLabel(person)}</button></>}
         {day && <><ChevronRight style={{ width: 15, height: 15, color: "var(--text-muted)" }} /><b>{day}</b></>}
         <span className="text-xs text-muted" style={{ marginLeft: "auto" }}>{files.length} archivos · {fmtSize(used)} en uso</span>
       </div>
 
-      {drag && <div className="banner" style={{ background: "#fff", borderStyle: "dashed", color: "var(--ink)" }}><Upload /><div>Suelta para subir a <b>{person} / {day || today()}</b></div></div>}
+      {drag && <div className="banner" style={{ background: "#fff", borderStyle: "dashed", color: "var(--ink)" }}><Upload /><div>Suelta para subir a <b>{folderLabel(person!)} / {day || today()}</b></div></div>}
 
       {!person ? (
         <div className="grid-3">
@@ -103,9 +117,9 @@ export default function ArchivosPage() {
             const last = mine.map((f) => f.date).sort().pop();
             return (
               <button key={p} className="card folder-card" onClick={() => setPerson(p)}>
-                <span className="person-ini">{p[0]}</span>
+                <span className="person-ini">{folderLabel(p)[0]}</span>
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: "1.25rem", fontWeight: 500, letterSpacing: "-0.03em" }}>{p}</div>
+                  <div style={{ fontSize: "1.25rem", fontWeight: 500, letterSpacing: "-0.03em" }}>{folderLabel(p)}</div>
                   <div className="section-sub">
                     {mine.length ? `${groupKits(mine).kits.length} ${groupKits(mine).kits.length === 1 ? "vídeo" : "vídeos"} · ${fmtSize(mine.reduce((s, f) => s + f.size, 0))}` : "Vacío"}
                     {last ? ` · último ${dayLabel(last)}` : ""}
@@ -120,7 +134,7 @@ export default function ArchivosPage() {
         days.length === 0 ? (
           <div className="card empty" style={{ padding: "3rem 1rem" }}>
             <Folder style={{ width: 28, height: 28 }} />
-            {loading ? "Cargando…" : <>Todavía no hay nada de {person}. Lo que suban las skills aparecerá aquí, en una carpeta por día. También puedes arrastrar archivos aquí.</>}
+            {loading ? "Cargando…" : <>Todavía no hay nada de {folderLabel(person)}. Lo que suban las skills aparecerá aquí, en una carpeta por día. También puedes arrastrar archivos aquí.</>}
           </div>
         ) : (
           <div className="grid-4">
@@ -153,7 +167,7 @@ export default function ArchivosPage() {
         <div className="flex flex-col gap-4">
           {groupKits(inDay).kits.map((k) => {
             const item = { paths: k.files.map((f) => f.path), label: `«${k.name}» y sus ${k.files.length} archivos` };
-            return <KitCard key={k.name} kit={k} onDelete={() => askDelete(item)} drag={dragTo(item)} />;
+            return <div key={k.name} id={`kit-${k.name}`} className={destacado === k.name ? "kit-destacado" : ""}><KitCard kit={k} onDelete={() => askDelete(item)} drag={dragTo(item)} /></div>;
           })}
           {groupKits(inDay).loose.length > 0 && (
             <>

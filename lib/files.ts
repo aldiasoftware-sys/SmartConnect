@@ -6,7 +6,11 @@ import { addDays, today, toISO } from "./social";
 // Cada archivo se borra cuando pasan 3 días desde el de subida: lo subido el día 11 se borra el día 14
 // (y con él su carpeta de fecha, si se queda vacía). Así no se llena el espacio de Supabase.
 export const BUCKET = "contenido";
-export const PEOPLE = ["Aldia", "Guille", "Alejandro"];
+// Carpetas que se ven en Archivos: la de la marca y la de Millán (la de Guille se quitó: sus archivos, si los hay, siguen en el
+// almacén hasta que caduquen, pero no se enseñan). «Alejandro» es la carpeta de Millán (así la escriben las skills).
+export const PEOPLE = ["Aldia", "Alejandro"];
+export const FOLDER_LABEL: Record<string, string> = { Alejandro: "Millán" };
+export const folderLabel = (p: string) => FOLDER_LABEL[p] || p;
 export const KEEP_DAYS = 3;
 
 export type StoredFile = { path: string; name: string; size: number; mime: string; created: string; person: string; date: string };

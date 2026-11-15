@@ -89,8 +89,8 @@ export default function SubscriptionsPage() {
     <div className="page-wrapper">
       <div className="page-header">
         <div>
-          <h2 className="page-title">Suscripciones</h2>
-          <p className="page-subtitle">Próximas renovaciones y gasto de herramientas AI.</p>
+          <h2 className="page-title">Gastos</h2>
+          <p className="page-subtitle">Gastos fijos de ALDIA: suscripciones y herramientas, con sus próximas renovaciones.</p>
         </div>
         <div style={{ display: 'flex', gap: '1rem' }}>
           <button className="btn-primary" onClick={() => setIsModalOpen(true)}>

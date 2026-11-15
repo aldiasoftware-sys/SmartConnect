@@ -47,7 +47,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     if (loading || isOpen) return;
     if (!session && !isPublic) router.replace("/login");
-    if (session && isPublic) router.replace("/");
+    if (session && isPublic) router.replace("/contenido");
   }, [loading, session, isPublic, isOpen, router]);
 
   const signOut = async () => {

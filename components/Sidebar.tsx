@@ -3,38 +3,36 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Home, CalendarRange, Share2, Users, Inbox, Briefcase, Video, CircleDollarSign, LineChart,
-  FolderKanban, UserCog, CalendarDays, KeySquare, FolderOpen, Mail, MessagesSquare, Puzzle,
+  CalendarRange, Users, Inbox, Briefcase, Video, CircleDollarSign, LineChart,
+  FolderKanban, UserCog, CalendarDays, KeySquare, FolderOpen, Mail, MessagesSquare, Puzzle, Target,
 } from "lucide-react";
 
 // Organizado como el Roadmap de arranque: atraer (contenido) → capturar y nutrir (comunidad) → convertir (comercial); y el equipo.
+// Sin «Esta semana» (entrar lleva directo al Calendario) ni «Redes»; Equipo va antes que Comercial y los gastos fijos están en Comercial.
 export const NAV_SECTIONS = [
-  { title: "", items: [
-    { name: "Esta semana", href: "/", icon: Home },
-  ] },
   { title: "Contenido", items: [
-    { name: "Calendario", href: "/contenido", icon: CalendarRange, isNew: true },
-    { name: "Redes", href: "/redes", icon: Share2 },
-    { name: "Archivos", href: "/archivos", icon: FolderOpen, isNew: true },
+    { name: "Calendario", href: "/contenido", icon: CalendarRange },
+    { name: "Archivos", href: "/archivos", icon: FolderOpen },
   ] },
   { title: "Comunidad", items: [
-    { name: "Leads y contactos", href: "/comunidad", icon: Users },
-    { name: "Newsletter", href: "/newsletter", icon: Mail, isNew: true },
-    { name: "Discord", href: "/discord", icon: MessagesSquare, isNew: true },
+    { name: "Comunidad", href: "/comunidad", icon: Users, isNew: true },
+    { name: "Newsletter", href: "/newsletter", icon: Mail },
+    { name: "Discord", href: "/discord", icon: MessagesSquare },
     { name: "Mensajes web", href: "/clientes", icon: Inbox },
   ] },
-  { title: "Comercial", items: [
-    { name: "Ofertas", href: "/ofertas", icon: Briefcase, isNew: true },
-    { name: "Reuniones", href: "/reuniones", icon: Video },
-    { name: "Facturación", href: "/finanzas", icon: CircleDollarSign },
-    { name: "Analítica", href: "/analitica", icon: LineChart },
-  ] },
   { title: "Equipo", items: [
-    { name: "Proyectos", href: "/proyectos", icon: FolderKanban, isNew: true },
+    { name: "Proyectos", href: "/proyectos", icon: FolderKanban },
     { name: "Equipo", href: "/equipo", icon: UserCog },
     { name: "Skills", href: "/skills", icon: Puzzle, isNew: true },
-    { name: "Suscripciones", href: "/suscripciones", icon: CalendarDays },
-    { name: "Credenciales", href: "/credenciales", icon: KeySquare },
+    { name: "Credenciales", href: "/credenciales", icon: KeySquare, isNew: true },
+  ] },
+  { title: "Comercial", items: [
+    { name: "Posibles clientes", href: "/posibles-clientes", icon: Target, isNew: true },
+    { name: "Ofertas", href: "/ofertas", icon: Briefcase },
+    { name: "Reuniones", href: "/reuniones", icon: Video },
+    { name: "Facturación", href: "/finanzas", icon: CircleDollarSign },
+    { name: "Gastos", href: "/suscripciones", icon: CalendarDays },
+    { name: "Analítica", href: "/analitica", icon: LineChart },
   ] },
 ];
 
@@ -43,7 +41,7 @@ export default function Sidebar() {
 
   return (
     <aside className="sidebar">
-      <Link href="/" className="sidebar-logo">
+      <Link href="/contenido" className="sidebar-logo">
         <img src="/aldia-mark.png" alt="Aldia" />
         <div>
           <b>Aldia Smart Connect</b>

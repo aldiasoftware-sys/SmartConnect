@@ -8,8 +8,6 @@ export type Account = { id: string; platform: Platform; name: string; owner: str
 export const ACCOUNTS: Account[] = [
   { id: "tiktok_aldia", platform: "tiktok", name: "TikTok", owner: "Aldia (conjunta)", color: "#fe2c55" },
   { id: "instagram_aldia", platform: "instagram", name: "Instagram", owner: "Aldia (conjunta)", color: "#d6249f", optional: true },
-  { id: "tiktok_guille", platform: "tiktok", name: "TikTok", owner: "Guille", color: "#25a8a3", optional: true },
-  { id: "instagram_guille", platform: "instagram", name: "Instagram", owner: "Guille", color: "#a855c7", optional: true },
   { id: "linkedin_guille", platform: "linkedin", name: "LinkedIn", owner: "Guille", color: "#0a66c2" },
   { id: "linkedin_millan", platform: "linkedin", name: "LinkedIn", owner: "Millán", color: "#5b6472" },
 ];
@@ -86,8 +84,9 @@ export const STATUSES = [
 ];
 export const statusOf = (id: string) => STATUSES.find((s) => s.id === id) || STATUSES[0];
 
-/** Mínimos de la semana con los posts diarios de lunes a viernes: Aldia (TikTok e Instagram) y Guille (TikTok, Instagram y LinkedIn). */
-export const TARGETS = { tiktok: 10, instagram: 10, linkedin: 5 };
+/** Mínimos de la semana: un post al día, los siete días (el fin de semana también se publica, además de grabar), en el TikTok y el
+ *  Instagram de Aldia; LinkedIn, los posts personales de Guille y Millán. (Guille ya no tiene TikTok ni Instagram personales aquí.) */
+export const TARGETS = { tiktok: 7, instagram: 7, linkedin: 5 };
 
 /** Las redes que cuentan para la rutina semanal. */
 export const ROUTINE_PLATFORMS = ["tiktok", "instagram", "linkedin"];

@@ -2,6 +2,7 @@
 
 import { useSales } from "@/lib/SalesContext";
 import { TrendingUp, BarChart3, PieChart, Zap } from "lucide-react";
+import InvitesCard from "@/components/InvitesCard";
 
 export default function AnalyticsPage() {
   const { sales } = useSales();
@@ -59,6 +60,9 @@ export default function AnalyticsPage() {
           </div>
         ))}
       </div>
+
+      {/* qué red trae gente a la comunidad (enlaces de Discord por red) */}
+      <div style={{ marginBottom: "1.5rem" }}><InvitesCard compact /></div>
 
       <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "1.5rem", marginBottom: "1.5rem" }}>
         {/* MRR per client bar chart */}

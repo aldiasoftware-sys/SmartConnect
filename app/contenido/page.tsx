@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, Plus, Wand2, HardDrive, AlertTriangle } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Wand2, HardDrive, AlertTriangle, Pencil } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useSocial } from "@/lib/SocialContext";
 import { DIAS, KINDS, PLATFORMS, Post, STATUSES, TARGETS, addDays, contentByWeek, fromISO, shortDate, statusOf, today, weekLabel, weekNumber, weekStart } from "@/lib/social";
 import { loadWeekTemplate } from "@/lib/content";
@@ -25,7 +26,11 @@ export default function ContenidoPage() {
   const [week, setWeek] = useState(weekStart());
   const [editing, setEditing] = useState<Post | null>(null);
   const [busy, setBusy] = useState(false);
+  const router = useRouter();
   const t = today();
+  // una pieza que sale de Archivos lleva a ese vídeo exacto en Archivos; el lápiz abre sus detalles (estado, fecha…)
+  const abrir = (p: Post) => (p.archivo ? router.push(`/archivos?abrir=${encodeURIComponent(p.archivo)}`) : setEditing(p));
+  const editar = (p: Post) => (e: React.MouseEvent) => { e.stopPropagation(); setEditing(p); };
 
   const days = Array.from({ length: 7 }, (_, i) => addDays(week, i));
   const weekPosts = posts.filter((p) => p.publish_date && p.publish_date >= week && p.publish_date <= days[6]);
@@ -40,20 +45,21 @@ export default function ContenidoPage() {
     const st = statusOf(p.status); const failed = p.status !== "publicado" && !!p.publish_date && p.publish_date < t;
     // lo de la cuenta conjunta (lo que sale de Archivos › Aldia) ocupa una línea: lo publica cualquiera de los dos
     if (isShared(p.owner) && p.archivo) return (
-      <button key={p.id} className={`post-card post-card-mini ${failed ? "failed" : ""} ${p.status === "publicado" ? "done" : ""}`} style={{ borderLeftColor: PLATFORMS[p.platform]?.color }} onClick={() => setEditing(p)} title={p.title}>
+      <div key={p.id} role="button" tabIndex={0} className={`post-card post-card-mini ${failed ? "failed" : ""} ${p.status === "publicado" ? "done" : ""}`} style={{ borderLeftColor: PLATFORMS[p.platform]?.color }} onClick={() => abrir(p)} onKeyDown={(e) => e.key === "Enter" && abrir(p)} title={`${p.title} · abrir en Archivos`}>
         <span className="st-dot"><i style={{ background: failed ? "var(--bad)" : st.color }} /></span>
         <span className="pc-mini">Subir post {PLATFORMS[p.platform]?.label}</span>
-      </button>
+        <button className="pc-edit" onClick={editar(p)} aria-label="Editar detalles" title="Editar detalles"><Pencil /></button>
+      </div>
     );
     return (
-      <button key={p.id} className={`post-card ${failed ? "failed" : ""} ${p.status === "publicado" ? "done" : ""}`} style={{ borderLeftColor: PLATFORMS[p.platform]?.color }} onClick={() => setEditing(p)}>
-        <div className="pc-top"><span>{PLATFORMS[p.platform]?.label} · {KINDS[p.kind || ""] || p.kind}</span>{isShared(p.owner) && <span>Conjunta</span>}</div>
+      <div key={p.id} role="button" tabIndex={0} className={`post-card ${failed ? "failed" : ""} ${p.status === "publicado" ? "done" : ""}`} style={{ borderLeftColor: PLATFORMS[p.platform]?.color }} onClick={() => abrir(p)} onKeyDown={(e) => e.key === "Enter" && abrir(p)} title={p.archivo ? "Abrir este vídeo en Archivos" : "Editar"}>
+        <div className="pc-top"><span>{PLATFORMS[p.platform]?.label} · {KINDS[p.kind || ""] || p.kind}</span>{isShared(p.owner) && <span>Conjunta</span>}{p.archivo && <button className="pc-edit" onClick={editar(p)} aria-label="Editar detalles" title="Editar detalles"><Pencil /></button>}</div>
         <div className="pc-title">{p.title}</div>
         <div className="flex items-center justify-between" style={{ marginTop: 6, gap: 6 }}>
           <span className="st-dot"><i style={{ background: failed ? "var(--bad)" : st.color }} />{failed ? "Sin publicar" : st.label}</span>
           {p.keyword && <span className="chip" style={{ fontSize: 10, padding: "1px 7px" }}>{p.keyword}</span>}
         </div>
-      </button>
+      </div>
     );
   };
 
@@ -63,7 +69,7 @@ export default function ContenidoPage() {
         <div>
           <div className="eyebrow">Rutina de contenido</div>
           <h2 className="page-title">Contenido</h2>
-          <p className="page-subtitle">Un calendario para cada uno: lo que sube cada uno a Archivos se pone solo en el suyo. Grabamos en lote el fin de semana y publicamos cada día.</p>
+          <p className="page-subtitle">Un calendario para cada uno: lo que sube cada uno a Archivos se pone solo en el suyo. Grabamos en lote el fin de semana y publicamos todos los días, también sábado y domingo. Pulsa una pieza que viene de Archivos para ir a su vídeo.</p>
         </div>
         <div className="flex gap-3 items-center">
           <button className="btn-secondary" onClick={template} disabled={busy || loading}><Wand2 style={{ width: 16, height: 16 }} /> Cargar semana tipo</button>
@@ -106,12 +112,12 @@ export default function ContenidoPage() {
                   <div className="day-head"><b>{DIAS[i]}</b><span>{fromISO(d).getDate()}</span></div>
                   {i >= 5 && (
                     <div className="day-off">
-                      <b>{i === 5 ? "Día de grabación" : "Planteamiento de la semana"}</b>
-                      <span>{i === 5 ? "Se graba en lote todo lo de la semana." : "Se decide qué se publica de lunes a viernes."}</span>
+                      <b>Día de grabación</b>
+                      <span>Se graba en lote y también se publica.</span>
                     </div>
                   )}
                   {mine.filter((p) => p.publish_date === d).sort((a, b) => a.platform.localeCompare(b.platform)).map(card)}
-                  {i < 5 && <button className="add-slot" onClick={() => setEditing(blank(d, i === 4 ? "linkedin" : "tiktok", m.owner))}>+ Añadir</button>}
+                  <button className="add-slot" onClick={() => setEditing(blank(d, i === 4 ? "linkedin" : "tiktok", m.owner))}>+ Añadir</button>
                 </div>
               ))}
             </div>

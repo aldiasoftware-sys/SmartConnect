@@ -35,7 +35,7 @@ export default function LoginPage() {
     setError(null);
     const { error } = await supabase.auth.signInWithPassword({ email: who.email, password });
     if (error) return fail(error.message === "Invalid login credentials" ? "Contraseña incorrecta." : error.message);
-    router.replace("/");
+    router.replace("/contenido");
   };
 
   return (

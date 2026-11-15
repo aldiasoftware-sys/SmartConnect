@@ -1,17 +1,31 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
-import { Plus, Search, Copy, Check, X, Pencil, Trash2, KeyRound, AtSign, MoreHorizontal, ShieldCheck, Lock } from "lucide-react";
+import { Plus, Search, Copy, Check, X, Pencil, Trash2, KeyRound, AtSign, MoreHorizontal, ShieldCheck, Lock, FolderLock, FolderPlus } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/AuthContext";
 import Portal from "@/components/Portal";
+import { getSetting, setSetting } from "@/lib/store";
 
 interface Credential {
   id: string;
   name: string;
   user: string;
   pass: string;
+  vault: string;
 }
+
+/** Minibóvedas: grupos de credenciales por dueño o proyecto (Aldia, Guille, Millán, un cliente…). */
+type VaultDef = { name: string; color: string };
+const VAULT_COLORS = ["#1e3a8a", "#b45309", "#0f766e", "#7c3aed", "#be123c", "#15803d", "#0369a1", "#a16207", "#475569"];
+const DEFAULT_VAULTS: VaultDef[] = [
+  { name: "Aldia", color: "#1e3a8a" },
+  { name: "Guille", color: "#b45309" },
+  { name: "Millán", color: "#0f766e" },
+];
+const SIN = "";   // sin bóveda
+function hashColor(name: string) { let h = 0; for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0; return VAULT_COLORS[h % VAULT_COLORS.length]; }
+const missingColumn = (e: { code?: string; message?: string } | null) => !!e && /42703|PGRST204|column .*vault/i.test(`${e.code} ${e.message}`);
 
 /** Colores «de marca» aproximados para los servicios más habituales; el resto sale de un tono derivado del nombre. */
 const BRANDS: [RegExp, string][] = [
@@ -85,7 +99,12 @@ export default function CredentialsPage() {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: '', user: '', pass: '' });
+  const [form, setForm] = useState({ name: '', user: '', pass: '', vault: SIN });
+  const [vaults, setVaults] = useState<VaultDef[]>(DEFAULT_VAULTS);
+  const [vaultCol, setVaultCol] = useState(true);             // ¿existe la columna credentials.vault?
+  const [vaultOf, setVaultOf] = useState<Record<string, string>>({});   // respaldo en app_settings mientras no exista
+  const [active, setActive] = useState<string | null>(null);  // null = todas
+  const [newVault, setNewVault] = useState<VaultDef | null>(null);
   const [query, setQuery] = useState("");
   const [copied, setCopied] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -99,14 +118,40 @@ export default function CredentialsPage() {
       .select('*')
       .order('created_at', { ascending: false });
 
+    const [defs, map, probe] = await Promise.all([
+      getSetting<VaultDef[]>("credential_vaults", DEFAULT_VAULTS),
+      getSetting<Record<string, string>>("credential_vault_of", {}),
+      supabase.from('credentials').select('vault').limit(1),
+    ]);
+    const hasCol = !missingColumn(probe.error);
+    setVaultCol(hasCol); setVaultOf(map); setVaults(defs?.length ? defs : DEFAULT_VAULTS);
+
     if (error) console.error("Error fetching creds:", error.message);
     else setCreds(data.map(d => ({
       id: d.id,
       name: d.name,
       user: d.username_email,
-      pass: d.password_text
+      pass: d.password_text,
+      vault: (hasCol ? d.vault || map[d.id] : map[d.id]) || SIN,
     })));
     setLoading(false);
+
+    // en cuanto existe la columna, las bóvedas guardadas aparte pasan a cada credencial
+    if (!error && hasCol && Object.keys(map).length) {
+      const pend = data.filter((d) => !d.vault && map[d.id]);
+      const results = await Promise.all(pend.map((d) => supabase.from('credentials').update({ vault: map[d.id] }).eq('id', d.id)));
+      if (results.every((r) => !r.error)) { setVaultOf({}); await setSetting("credential_vault_of", {}); }
+    }
+  };
+
+  // la bóveda de una credencial; sin la columna se guarda aparte (app_settings) para que la vea todo el equipo
+  const saveVaultFallback = async (id: string, vault: string) => {
+    const next = { ...vaultOf }; if (vault) next[id] = vault; else delete next[id];
+    setVaultOf(next); await setSetting("credential_vault_of", next);
+  };
+  const ensureVault = async (name: string) => {
+    if (!name || vaults.some((v) => v.name.toLowerCase() === name.toLowerCase())) return;
+    const next = [...vaults, { name, color: hashColor(name) }]; setVaults(next); await setSetting("credential_vaults", next);
   };
 
   useEffect(() => {
@@ -121,41 +166,38 @@ export default function CredentialsPage() {
     setSaving(true);
     setFormError("");
 
-    const { error } = editingId !== null
-      ? await supabase.from('credentials').update({
-          name: form.name,
-          username_email: form.user,
-          password_text: form.pass
-        }).eq('id', editingId)
-      : await supabase.from('credentials').insert({
-          name: form.name,
-          username_email: form.user,
-          password_text: form.pass
-        });
+    const vault = form.vault.trim();
+    const row: Record<string, string | null> = { name: form.name, username_email: form.user, password_text: form.pass };
+    if (vaultCol) row.vault = vault || null;
+    const { data, error } = editingId !== null
+      ? await supabase.from('credentials').update(row).eq('id', editingId).select('id').single()
+      : await supabase.from('credentials').insert(row).select('id').single();
 
+    if (error) { setSaving(false); setFormError("No se ha podido guardar. Inténtalo de nuevo."); return; }
+    await ensureVault(vault);
+    if (!vaultCol && data?.id) await saveVaultFallback(data.id, vault);
     setSaving(false);
-    if (error) { setFormError("No se ha podido guardar. Inténtalo de nuevo."); return; }
     fetchCreds();
     closeModal();
   };
 
   const openNew = () => {
     setEditingId(null);
-    setForm({ name: '', user: '', pass: '' });
+    setForm({ name: '', user: '', pass: '', vault: active ?? SIN });
     setFormError("");
     setIsModalOpen(true);
   };
 
   const openEdit = (cred: Credential) => {
     setEditingId(cred.id);
-    setForm({ name: cred.name, user: cred.user, pass: cred.pass });
+    setForm({ name: cred.name, user: cred.user, pass: cred.pass, vault: cred.vault });
     setFormError("");
     setIsModalOpen(true);
   };
 
   const closeModal = () => {
     setEditingId(null);
-    setForm({ name: '', user: '', pass: '' });
+    setForm({ name: '', user: '', pass: '', vault: SIN });
     setFormError("");
     setIsModalOpen(false);
   };
@@ -190,9 +232,37 @@ export default function CredentialsPage() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return creds;
-    return creds.filter((c) => (c.name || "").toLowerCase().includes(q) || (c.user || "").toLowerCase().includes(q));
-  }, [creds, query]);
+    return creds.filter((c) => (active === null || c.vault === active)
+      && (!q || (c.name || "").toLowerCase().includes(q) || (c.user || "").toLowerCase().includes(q) || (c.vault || "").toLowerCase().includes(q)));
+  }, [creds, query, active]);
+
+  // bóvedas a mostrar: las definidas + las que aparezcan en credenciales (por si alguien escribió una nueva)
+  const allVaults = useMemo(() => {
+    const list = [...vaults];
+    creds.forEach((c) => { if (c.vault && !list.some((v) => v.name === c.vault)) list.push({ name: c.vault, color: hashColor(c.vault) }); });
+    return list;
+  }, [vaults, creds]);
+  const colorOf = (name: string) => allVaults.find((v) => v.name === name)?.color || "#94a3b8";
+  const countIn = (name: string) => creds.filter((c) => c.vault === name).length;
+  const groups = useMemo(() => {
+    const g = allVaults.map((v) => ({ ...v, items: filtered.filter((c) => c.vault === v.name) }));
+    g.push({ name: SIN, color: "#94a3b8", items: filtered.filter((c) => !c.vault) });
+    return g.filter((x) => x.items.length);
+  }, [allVaults, filtered]);
+
+  const createVault = async () => {
+    const name = newVault?.name.trim(); if (!name || !newVault) return;
+    const same = allVaults.find((v) => v.name.toLowerCase() === name.toLowerCase());
+    if (same) { setActive(same.name); setNewVault(null); return; }
+    const next = [...vaults, { name, color: newVault.color }]; setVaults(next); setNewVault(null); setActive(name);
+    await setSetting("credential_vaults", next);
+  };
+  const removeVault = async (name: string) => {
+    if (countIn(name)) { alert(`La bóveda «${name}» tiene credenciales: muévelas a otra antes de quitarla.`); return; }
+    if (!confirm(`¿Quitar la bóveda «${name}»? Está vacía.`)) return;
+    const next = vaults.filter((v) => v.name !== name); setVaults(next); if (active === name) setActive(null);
+    await setSetting("credential_vaults", next);
+  };
 
   const copyBtn = (value: string, k: string, what: string) => {
     const on = copied === k;
@@ -210,6 +280,37 @@ export default function CredentialsPage() {
       </button>
     );
   };
+
+  const renderCard = (cred: Credential) => (
+            <div key={cred.id} className="mx-card cr-card animate-in" style={{ ["--vc" as any]: cred.vault ? colorOf(cred.vault) : "transparent" }}>
+              <div className="cr-top">
+                <div className="cr-tile" style={{ background: tileColor(cred.name || "") }} aria-hidden="true">{initials(cred.name || "")}</div>
+                <div className="mx-grow">
+                  <div className="mx-title mx-trunc" title={cred.name}>{cred.name}</div>
+                  <div className="mx-meta mx-trunc">{cred.pass ? "Contraseña guardada" : "Sin contraseña"}</div>
+                </div>
+                <CredMenu onEdit={() => openEdit(cred)} onDelete={() => handleDelete(cred.id)} />
+              </div>
+
+              <div className="cr-fields">
+                <div className="cr-field">
+                  <AtSign className="cr-fico" />
+                  <div className="mx-grow">
+                    <div className="cr-label">Email / Usuario</div>
+                    <div className={`cr-value mx-trunc${cred.user ? "" : " empty"}`} title={cred.user || undefined}>{cred.user || "—"}</div>
+                  </div>
+                  {copyBtn(cred.user, `${cred.id}:user`, "usuario")}
+                </div>
+                <div className="cr-field">
+                  <Lock className="cr-fico" />
+                  <div className="mx-grow">
+                    <div className="cr-label">Contraseña</div>
+                    <div className={`cr-value cr-mask${cred.pass ? "" : " empty"}`}>{cred.pass ? "••••••••••••" : "—"}</div>
+                  </div>
+                  {copyBtn(cred.pass, `${cred.id}:pass`, "contraseña")}
+                </div>
+              </div>
+            </div>);
 
   return (
     <div className="page-wrapper">
@@ -242,6 +343,30 @@ export default function CredentialsPage() {
         <span className="cr-note"><ShieldCheck /> Las contraseñas se muestran siempre ocultas</span>
       </div>
 
+      <div className="cr-chips" role="tablist" aria-label="Bóvedas">
+        <button role="tab" aria-selected={active === null} className={`cr-chip${active === null ? " on" : ""}`} onClick={() => setActive(null)}>Todas <b>{creds.length}</b></button>
+        {allVaults.map((v) => (
+          <span key={v.name} className={`cr-chip-wrap${active === v.name ? " on" : ""}`} style={{ ["--vc" as any]: v.color }}>
+            <button role="tab" aria-selected={active === v.name} className={`cr-chip${active === v.name ? " on" : ""}`} onClick={() => setActive(active === v.name ? null : v.name)}>
+              <i className="cr-dot" /> {v.name} <b>{countIn(v.name)}</b>
+            </button>
+            {active === v.name && !countIn(v.name) && vaults.some((x) => x.name === v.name) && (
+              <button className="cr-chip-x" aria-label={`Quitar la bóveda ${v.name}`} title="Quitar bóveda vacía" onClick={() => removeVault(v.name)}><X /></button>
+            )}
+          </span>
+        ))}
+        {creds.some((c) => !c.vault) && (
+          <button role="tab" aria-selected={active === SIN} className={`cr-chip${active === SIN ? " on" : ""}`} onClick={() => setActive(active === SIN ? null : SIN)}>
+            <i className="cr-dot" style={{ background: "#94a3b8" }} /> Sin bóveda <b>{countIn(SIN)}</b>
+          </button>
+        )}
+        <button className="cr-chip add" onClick={() => setNewVault({ name: "", color: VAULT_COLORS[(vaults.length) % VAULT_COLORS.length] })}><FolderPlus /> Nueva bóveda</button>
+      </div>
+
+      {!vaultCol && !loading && (
+        <p className="cr-warn">Las bóvedas se están guardando aparte porque falta la columna <code>vault</code> en <code>credentials</code>. Funciona igual; cuando ejecutéis <code>credenciales_bovedas.sql</code> en Supabase se quedarán en la propia credencial.</p>
+      )}
+
       {loading ? (
         <div className="cr-grid">
           {Array.from({ length: 6 }).map((_, i) => <div key={i} className="mx-skeleton" style={{ height: 168, borderRadius: 18 }} />)}
@@ -256,42 +381,23 @@ export default function CredentialsPage() {
       ) : filtered.length === 0 ? (
         <div className="mx-empty">
           <div className="mx-ico"><Search /></div>
-          <h3>Sin resultados</h3>
-          <p>Ninguna credencial coincide con «{query.trim()}».</p>
-          <button className="btn-secondary" onClick={() => setQuery("")}>Limpiar búsqueda</button>
+          <h3>{query.trim() ? "Sin resultados" : "Bóveda vacía"}</h3>
+          <p>{query.trim() ? `Ninguna credencial coincide con «${query.trim()}»${active !== null ? ` en «${active || "Sin bóveda"}»` : ""}.` : `Aún no hay credenciales en «${active || "Sin bóveda"}».`}</p>
+          {query.trim()
+            ? <button className="btn-secondary" onClick={() => setQuery("")}>Limpiar búsqueda</button>
+            : <button className="btn-primary" onClick={openNew}><Plus style={{ width: 16, height: 16 }} /> Nueva credencial aquí</button>}
         </div>
       ) : (
-        <div className="cr-grid">
-          {filtered.map((cred) => (
-            <div key={cred.id} className="mx-card cr-card animate-in">
-              <div className="cr-top">
-                <div className="cr-tile" style={{ background: tileColor(cred.name || "") }} aria-hidden="true">{initials(cred.name || "")}</div>
-                <div className="mx-grow">
-                  <div className="mx-title mx-trunc" title={cred.name}>{cred.name}</div>
-                  <div className="mx-meta mx-trunc">{cred.pass ? "Contraseña guardada" : "Sin contraseña"}</div>
-                </div>
-                <CredMenu onEdit={() => openEdit(cred)} onDelete={() => handleDelete(cred.id)} />
-              </div>
-
-              <div className="cr-fields">
-                <div className="cr-field">
-                  <AtSign className="cr-fico" />
-                  <div className="mx-grow">
-                    <div className="cr-label">Email / Usuario</div>
-                    <div className={`cr-value mx-trunc${cred.user ? "" : " empty"}`} title={cred.user || undefined}>{cred.user || "—"}</div>
-                  </div>
-                  {copyBtn(cred.user, `${cred.id}:user`, "usuario")}
-                </div>
-                <div className="cr-field">
-                  <Lock className="cr-fico" />
-                  <div className="mx-grow">
-                    <div className="cr-label">Contraseña</div>
-                    <div className={`cr-value cr-mask${cred.pass ? "" : " empty"}`}>{cred.pass ? "••••••••••••" : "—"}</div>
-                  </div>
-                  {copyBtn(cred.pass, `${cred.id}:pass`, "contraseña")}
-                </div>
-              </div>
-            </div>
+        <div className="cr-groups">
+          {groups.map((g) => (
+            <section key={g.name || "sin"} className="cr-vault" style={{ ["--vc" as any]: g.color }}>
+              <header className="cr-vault-head">
+                <span className="cr-vault-ico"><FolderLock /></span>
+                <h3>{g.name || "Sin bóveda"}</h3>
+                <span className="cr-vault-n">{g.items.length}</span>
+              </header>
+              <div className="cr-grid">{g.items.map(renderCard)}</div>
+            </section>
           ))}
         </div>
       )}
@@ -311,13 +417,25 @@ export default function CredentialsPage() {
                     {form.name.trim() ? initials(form.name) : <KeyRound />}
                   </div>
                   <div>
-                    <div className="eyebrow" style={{ marginBottom: 2 }}>Bóveda</div>
+                    <div className="eyebrow" style={{ marginBottom: 2 }}>{form.vault.trim() ? `Bóveda · ${form.vault.trim()}` : "Bóveda"}</div>
                     <h3 style={{ fontSize: "1.25rem", fontWeight: 500, letterSpacing: "-0.03em" }}>{editingId ? "Editar Credencial" : "Nueva Credencial"}</h3>
                   </div>
                 </div>
                 <button type="button" className="icon-btn" onClick={closeModal} aria-label="Cerrar"><X /></button>
               </div>
               <div className="dialog-body">
+                <div className="form-group"><label>Bóveda</label>
+                  <div className="cr-pick">
+                    {allVaults.map((v) => (
+                      <button type="button" key={v.name} className={`cr-chip${form.vault === v.name ? " on" : ""}`} style={{ ["--vc" as any]: v.color }} onClick={() => setForm({ ...form, vault: form.vault === v.name ? SIN : v.name })}>
+                        <i className="cr-dot" /> {v.name}
+                      </button>
+                    ))}
+                    <input className="cr-pick-new" list="cr-vaults" value={allVaults.some((v) => v.name === form.vault) ? "" : form.vault}
+                      onChange={(e) => setForm({ ...form, vault: e.target.value })} placeholder="u otra nueva…" aria-label="Otra bóveda" autoComplete="off" />
+                    <datalist id="cr-vaults">{allVaults.map((v) => <option key={v.name} value={v.name} />)}</datalist>
+                  </div>
+                </div>
                 <div className="form-group"><label>Nombre del Servicio</label>
                   <input autoFocus value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Ej: Supabase Dashboard" autoComplete="off" /></div>
                 <div className="form-group"><label>Email / Usuario</label>
@@ -342,7 +460,75 @@ export default function CredentialsPage() {
         </Portal>
       )}
 
+      {newVault && (
+        <Portal>
+          <div className="dialog-overlay" onClick={() => setNewVault(null)}>
+            <form className="dialog" style={{ maxWidth: 420 }} onClick={(e) => e.stopPropagation()} onSubmit={(e) => { e.preventDefault(); createVault(); }}>
+              <div className="dialog-head">
+                <div className="cr-dhead">
+                  <div className="cr-tile lg" style={{ background: newVault.color }} aria-hidden="true"><FolderLock /></div>
+                  <div>
+                    <div className="eyebrow" style={{ marginBottom: 2 }}>Minibóveda</div>
+                    <h3 style={{ fontSize: "1.25rem", fontWeight: 500, letterSpacing: "-0.03em" }}>Nueva bóveda</h3>
+                  </div>
+                </div>
+                <button type="button" className="icon-btn" onClick={() => setNewVault(null)} aria-label="Cerrar"><X /></button>
+              </div>
+              <div className="dialog-body">
+                <div className="form-group"><label>¿De quién o de qué proyecto?</label>
+                  <input autoFocus value={newVault.name} onChange={(e) => setNewVault({ ...newVault, name: e.target.value })} placeholder="Ej: Cliente Palacio, Locodea, Guille…" autoComplete="off" /></div>
+                <div className="form-group" style={{ marginBottom: 0 }}><label>Color</label>
+                  <div className="cr-swatches">
+                    {VAULT_COLORS.map((c) => (
+                      <button type="button" key={c} className={`cr-swatch${newVault.color === c ? " on" : ""}`} style={{ background: c }} aria-label={`Color ${c}`} onClick={() => setNewVault({ ...newVault, color: c })} />
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div className="dialog-foot">
+                <span />
+                <div className="flex gap-2">
+                  <button type="button" className="btn-secondary" onClick={() => setNewVault(null)}>Cancelar</button>
+                  <button type="submit" className="btn-primary" disabled={!newVault.name.trim()}>Crear bóveda</button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </Portal>
+      )}
+
       <style jsx global>{`
+        .cr-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: -0.25rem 0 1.25rem; }
+        .cr-chip { --vc: var(--ink); display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 12px; border-radius: 99px; border: 1px solid var(--border-color); background: #fff; color: var(--text-secondary); font: inherit; font-size: 0.8125rem; font-weight: 500; cursor: pointer; transition: var(--transition); white-space: nowrap; }
+        .cr-chip b { font-weight: 600; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+        .cr-chip:hover { border-color: var(--vc); color: var(--ink); }
+        .cr-chip.on { background: var(--vc); border-color: var(--vc); color: #fff; }
+        .cr-chip.on b { color: rgba(255,255,255,0.75); }
+        .cr-chip.on .cr-dot { background: #fff !important; }
+        .cr-chip.add { border-style: dashed; color: var(--text-muted); }
+        .cr-chip.add svg { width: 15px; height: 15px; }
+        .cr-chip-wrap { --vc: var(--ink); display: inline-flex; align-items: center; gap: 2px; }
+        .cr-chip-x { width: 28px; height: 28px; border: 0; border-radius: 99px; background: none; color: var(--text-muted); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+        .cr-chip-x:hover { background: var(--bad-soft); color: var(--bad); }
+        .cr-chip-x svg { width: 14px; height: 14px; }
+        .cr-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--vc); flex-shrink: 0; }
+        .cr-warn { font-size: 0.8125rem; color: var(--text-secondary); background: var(--warn-soft); border-radius: 12px; padding: 0.625rem 0.875rem; margin: -0.5rem 0 1.25rem; }
+
+        .cr-groups { display: flex; flex-direction: column; gap: 1.25rem; }
+        .cr-vault { border-radius: 22px; padding: 0.875rem; background: color-mix(in srgb, var(--vc) 6%, transparent); border: 1px solid color-mix(in srgb, var(--vc) 18%, transparent); }
+        .cr-vault-head { display: flex; align-items: center; gap: 0.625rem; margin: 0 0.25rem 0.75rem; }
+        .cr-vault-head h3 { font-size: 1rem; font-weight: 600; letter-spacing: -0.02em; color: var(--ink); }
+        .cr-vault-ico { width: 30px; height: 30px; border-radius: 9px; background: var(--vc); color: #fff; display: inline-flex; align-items: center; justify-content: center; }
+        .cr-vault-ico svg { width: 16px; height: 16px; }
+        .cr-vault-n { font-size: 0.75rem; font-weight: 600; color: var(--vc); background: color-mix(in srgb, var(--vc) 12%, #fff); border-radius: 99px; padding: 2px 8px; }
+        .cr-card { box-shadow: inset 3px 0 0 var(--vc), var(--shadow-sm); }
+
+        .cr-pick { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+        .cr-pick .cr-chip { height: 32px; }
+        .cr-pick-new { flex: 1; min-width: 130px; height: 32px !important; padding: 0 12px !important; border-radius: 99px !important; font-size: 0.8125rem !important; }
+        .cr-swatches { display: flex; flex-wrap: wrap; gap: 8px; }
+        .cr-swatch { width: 30px; height: 30px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 0 1px var(--border-color); cursor: pointer; }
+        .cr-swatch.on { box-shadow: 0 0 0 2px var(--ink); }
         .cr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(268px, 100%), 1fr)); gap: 0.875rem; }
         .cr-card { padding: 0.875rem; border-radius: 18px; display: flex; flex-direction: column; gap: 0.75rem; }
         .cr-card:hover { transform: translateY(-1px); }

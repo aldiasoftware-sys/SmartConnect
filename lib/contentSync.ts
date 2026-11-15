@@ -1,6 +1,6 @@
 import { supabase } from "./supabase";
 import { Kit, StoredFile, bucketExists, groupKits, isDiscarded, listAll, listDiscarded, pruneDiscarded, readText } from "./files";
-import { Post, addDays, fromISO, today } from "./social";
+import { Post, addDays, today } from "./social";
 import { deleteRow, listRows, saveRow, tableMode } from "./store";
 import { TEAM, isShared } from "./team";
 
@@ -11,10 +11,10 @@ import { TEAM, isShared } from "./team";
 // Cada carpeta de Archivos va al calendario de su persona: Archivos › Alejandro → calendario de Millán; Archivos › Guille → el de Guille.
 const OWNER: Record<string, string> = Object.fromEntries(TEAM.map((m) => [m.folder, m.owner]));
 
-/** Se publica de lunes a viernes; el sábado se graba y el domingo se plantea la semana. */
-export const isPublishDay = (d: string) => { const w = fromISO(d).getDay(); return w >= 1 && w <= 5; };
+/** Se publica todos los días: el fin de semana, además de grabar en lote, también es día de subida. */
+export const isPublishDay = (_d: string) => true;
 
-/** Primer día de lunes a viernes, desde `from`, en el que esa red tiene hueco EN EL CALENDARIO DE ESA PERSONA
+/** Primer día, desde `from`, en el que esa red tiene hueco EN EL CALENDARIO DE ESA PERSONA
  *  (cada uno tiene el suyo: 1 publicación al día por red y persona como máximo; lo conjunto cuenta en los dos).
  *  Un hueco es un día sin nada en esa red o con una pieza de la semana tipo aún vacía (en «Idea» y sin vídeo), que se aprovecha. */
 function firstSlot(posts: Post[], platform: string, from: string, owner: string): { day: string; reuse?: Post } {
