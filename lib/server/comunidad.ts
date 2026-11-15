@@ -25,7 +25,7 @@ export const REDES = [
 export const dayMadrid = (d: string | number | Date) =>
   new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Madrid", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(d));
 
-export type Member = { id: string; name: string; joined: string; roles: string[]; bot: boolean };
+export type Member = { id: string; name: string; username: string; joined: string; roles: string[]; bot: boolean };
 
 /** Todos los miembros (necesita «Server Members Intent»), con los nombres de sus roles. */
 export async function listMembers(env: Env): Promise<Member[]> {
@@ -37,7 +37,7 @@ export async function listMembers(env: Env): Promise<Member[]> {
     const batch: any[] = await discord(env, `/guilds/${GUILD_ID}/members?limit=1000&after=${after}`);
     for (const m of batch) {
       out.push({
-        id: m.user.id, name: m.nick || m.user.global_name || m.user.username, joined: m.joined_at,
+        id: m.user.id, name: m.nick || m.user.global_name || m.user.username, username: m.user.username, joined: m.joined_at,
         roles: (m.roles || []).map((r: string) => roleName.get(r)).filter(Boolean), bot: !!m.user.bot,
       });
     }
@@ -48,6 +48,16 @@ export async function listMembers(env: Env): Promise<Member[]> {
 }
 
 export const isTeam = (m: { roles: string[] }) => m.roles.some((r) => TEAM_ROLES.includes(r));
+
+/** Cuentas del equipo que no cuentan como comunidad (Guille, Millán y la cuenta ALDIA) mientras no se elija otra cosa. */
+export const DEFAULT_EXCLUDED_USERNAMES = ["rguiillee", "zzmillan", "aldiaproject"];
+
+/** Ids que no cuentan: los marcados en Smart Connect (app_settings «discord_excluidos») o, si nunca se ha tocado, los del equipo. */
+export async function excludedIds(env: Env, members: Member[]): Promise<Set<string>> {
+  const saved = await getSettingSrv<string[] | null>(env, "discord_excluidos", null);
+  if (saved) return new Set(saved);
+  return new Set(members.filter((m) => DEFAULT_EXCLUDED_USERNAMES.includes(m.username)).map((m) => m.id));
+}
 
 // ---------- ajustes compartidos (tabla app_settings) con la clave secreta ----------
 export async function getSettingSrv<T>(env: Env, key: string, fallback: T): Promise<T> {

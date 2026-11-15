@@ -2,18 +2,22 @@
 // Alimenta el contador de Comunidad sin apuntar nada a mano. No devuelve nombres: solo fechas y recuentos.
 // Necesita «Server Members Intent» en el bot (Discord Developer Portal › Bot › Privileged Gateway Intents).
 import { Ctx, errorResponse, json, teamUser } from "../../../lib/server/discord";
-import { INTEREST_ROLES, LEVEL_ROLES, dayMadrid, isTeam, listMembers } from "../../../lib/server/comunidad";
+import { INTEREST_ROLES, LEVEL_ROLES, dayMadrid, excludedIds, isTeam, listMembers } from "../../../lib/server/comunidad";
 
 export async function onRequestGet(ctx: Ctx) {
   if (!(await teamUser(ctx))) return json({ ok: false, error: "Solo para el equipo" }, 401);
   try {
     const people = (await listMembers(ctx.env)).filter((m) => !m.bot);
-    const community = people.filter((m) => !isTeam(m));            // el equipo no cuenta en los perfiles
+    const excluded = await excludedIds(ctx.env, people);
+    const community = people.filter((m) => !isTeam(m) && !excluded.has(m.id));   // el equipo y sus otras cuentas no cuentan
     const count = (names: string[]) => names.map((name) => ({ name, count: community.filter((m) => m.roles.includes(name)).length }));
     return json({
       ok: true,
-      joins: people.map((m) => dayMadrid(m.joined)).sort(),
-      total: people.length,
+      joins: community.map((m) => dayMadrid(m.joined)).sort(),
+      total: community.length,
+      // para la lista «Quién no cuenta» de Comunidad
+      cuentas: people.map((m) => ({ id: m.id, name: m.name, username: m.username, joined_on: dayMadrid(m.joined), team: isTeam(m), excluded: isTeam(m) || excluded.has(m.id) }))
+        .sort((a, b) => a.joined_on.localeCompare(b.joined_on)),
       perfiles: count(INTEREST_ROLES),
       niveles: count(LEVEL_ROLES),
       sinPerfil: community.filter((m) => !m.roles.some((r) => INTEREST_ROLES.includes(r))).length,

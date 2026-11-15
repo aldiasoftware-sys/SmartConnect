@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Plus, Undo2, CalendarPlus, Users, TrendingUp, CalendarRange, Trophy, HardDrive, X, Trash2, RefreshCw } from "lucide-react";
 import { SKOOL_AT, fmt, pct, shortDate, today, weekStart } from "@/lib/social";
-import { deleteRow, listRows, saveRow, tableMode } from "@/lib/store";
+import { deleteRow, listRows, saveRow, setSetting, tableMode } from "@/lib/store";
 import Portal from "@/components/Portal";
 import { useAuth } from "@/lib/AuthContext";
 import InvitesCard from "@/components/InvitesCard";
@@ -13,7 +13,11 @@ import Link from "next/link";
 // Las altas del servidor de Discord se leen solas (/api/discord/miembros); a mano solo se apunta a quien entra por otro sitio.
 type Join = { id?: string; joined_on: string; created_at?: string };
 type Perfil = { name: string; count: number };
-type DiscordState = { status: "cargando" | "ok" | "intent" | "sin-servidor" | "error"; joins: string[]; at?: string; error?: string; perfiles?: Perfil[]; niveles?: Perfil[]; sinPerfil?: number; comunidad?: number };
+type Cuenta = { id: string; name: string; username: string; joined_on: string; team: boolean; excluded: boolean };
+type DiscordState = { status: "cargando" | "ok" | "intent" | "sin-servidor" | "error"; joins: string[]; at?: string; error?: string; perfiles?: Perfil[]; niveles?: Perfil[]; sinPerfil?: number; comunidad?: number; cuentas?: Cuenta[] };
+
+/** Se empieza a contar el lunes 9 de noviembre de 2026 (primera semana de la comunidad): lo de antes no cuenta ni se compara. */
+const COUNT_START = "2026-11-09";
 
 const MES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -23,7 +27,8 @@ const monthKey = (s: string) => s.slice(0, 7);
 const monthLabel = (k: string) => { const [y, m] = k.split("-").map(Number); return `${MES[m - 1]}${y !== new Date().getFullYear() ? ` ${String(y).slice(2)}` : ""}`; };
 const prevMonthKey = (k: string, n = 1) => { const [y, m] = k.split("-").map(Number); const d = new Date(y, m - 1 - n, 1); return iso(d).slice(0, 7); };
 
-function Delta({ now, before }: { now: number; before: number }) {
+function Delta({ now, before, first }: { now: number; before: number; first?: string }) {
+  if (first) return <span>{first}</span>;
   if (!before && !now) return <span>sin movimiento</span>;
   const diff = now - before;
   const color = diff > 0 ? "var(--ok)" : diff < 0 ? "var(--bad)" : "var(--text-muted)";
@@ -70,7 +75,7 @@ export default function ComunidadPage() {
       const r = await fetch("/api/discord/miembros", { headers: { authorization: `Bearer ${session.access_token}` }, cache: "no-store" });
       if (!(r.headers.get("content-type") || "").includes("json")) { setDc({ status: "sin-servidor", joins: [] }); return; }   // en `next dev` no hay funciones de Cloudflare
       const j = await r.json();
-      if (j.ok) setDc({ status: "ok", joins: j.joins, at: j.at, perfiles: j.perfiles, niveles: j.niveles, sinPerfil: j.sinPerfil, comunidad: j.comunidad });
+      if (j.ok) setDc({ status: "ok", joins: j.joins, at: j.at, perfiles: j.perfiles, niveles: j.niveles, sinPerfil: j.sinPerfil, comunidad: j.comunidad, cuentas: j.cuentas });
       else setDc({ status: j.needsIntent ? "intent" : "error", joins: [], error: j.error });
     } catch { setDc({ status: "sin-servidor", joins: [] }); }
   }
@@ -78,7 +83,16 @@ export default function ComunidadPage() {
 
   // todas las altas: las de Discord (solas) + las apuntadas a mano
   const auto = dc.status === "ok";
-  const joins = useMemo<Join[]>(() => [...dc.joins.map((d) => ({ joined_on: d })), ...manual], [dc.joins, manual]);
+  const joins = useMemo<Join[]>(() => [...dc.joins.map((d) => ({ joined_on: d })), ...manual].filter((j) => j.joined_on >= COUNT_START), [dc.joins, manual]);
+
+  // marcar/desmarcar una cuenta como «no cuenta» (las del equipo por rol siempre quedan fuera)
+  async function toggleCuenta(c: Cuenta) {
+    if (c.team || !dc.cuentas) return;
+    const ids = dc.cuentas.filter((x) => !x.team && (x.id === c.id ? !x.excluded : x.excluded)).map((x) => x.id);
+    setDc((d) => ({ ...d, cuentas: d.cuentas?.map((x) => (x.id === c.id ? { ...x, excluded: !x.excluded } : x)) }));
+    await setSetting("discord_excluidos", ids);
+    await loadDiscord();
+  }
 
   async function add(date: string, count = 1) {
     setBusy(true);
@@ -110,26 +124,32 @@ export default function ComunidadPage() {
   const byDay = useMemo(() => { const m = new Map<string, number>(); joins.forEach((j) => m.set(j.joined_on, (m.get(j.joined_on) || 0) + 1)); return m; }, [joins]);
   const inRange = (from: string, to: string) => joins.filter((j) => j.joined_on >= from && j.joined_on <= to).length;
 
+  const prevWeekCounts = addDays(ws, -7) >= COUNT_START;          // la semana anterior ya estaba dentro del recuento
+  const prevMonthCounts = `${prevMonthKey(mk)}-01` >= COUNT_START;
   const thisWeek = inRange(ws, addDays(ws, 6));
   const lastWeek = inRange(addDays(ws, -7), addDays(ws, -1));
   const thisMonth = joins.filter((j) => monthKey(j.joined_on) === mk).length;
   const lastMonth = joins.filter((j) => monthKey(j.joined_on) === prevMonthKey(mk)).length;
   const todayCount = byDay.get(t) || 0;
 
-  // últimas 12 semanas (lunes a domingo)
-  const weeks = Array.from({ length: 12 }, (_, i) => {
-    const start = addDays(ws, -7 * (11 - i));
+  // semanas (lunes a domingo) desde la primera, hasta 12
+  const weeksCounted = Math.max(1, Math.round((parse(ws).getTime() - parse(weekStart(parse(COUNT_START))).getTime()) / (7 * 864e5)) + 1);
+  const nWeeks = Math.min(12, weeksCounted);
+  const weeks = Array.from({ length: nWeeks }, (_, i) => {
+    const start = addDays(ws, -7 * (nWeeks - 1 - i));
     return { key: start, label: shortDate(start), value: inRange(start, addDays(start, 6)) };
   });
-  // últimos 6 meses
-  const months = Array.from({ length: 6 }, (_, i) => {
-    const k = prevMonthKey(mk, 5 - i);
+  // meses desde el primero, hasta 6
+  const monthsCounted = (Number(mk.slice(0, 4)) - Number(COUNT_START.slice(0, 4))) * 12 + Number(mk.slice(5, 7)) - Number(COUNT_START.slice(5, 7)) + 1;
+  const nMonths = Math.max(1, Math.min(6, monthsCounted));
+  const months = Array.from({ length: nMonths }, (_, i) => {
+    const k = prevMonthKey(mk, nMonths - 1 - i);
     return { key: k, label: monthLabel(k), value: joins.filter((j) => monthKey(j.joined_on) === k).length };
   });
 
   // análisis: media semanal desde la primera entrada, mejor semana, días de la semana que más entran
-  const first = useMemo(() => joins.reduce((m, j) => (!m || j.joined_on < m ? j.joined_on : m), ""), [joins]);
-  const weeksSinceFirst = first ? Math.max(1, Math.floor((parse(weekStart()).getTime() - parse(weekStart(parse(first))).getTime()) / (7 * 864e5) + 0.5) + 1) : 0;
+  const first = total ? COUNT_START : "";
+  const weeksSinceFirst = total ? weeksCounted : 0;
   const avgWeek = weeksSinceFirst ? total / weeksSinceFirst : 0;
   const bestWeek = useMemo(() => {
     const m = new Map<string, number>(); joins.forEach((j) => { const k = weekStart(parse(j.joined_on)); m.set(k, (m.get(k) || 0) + 1); });
@@ -182,7 +202,7 @@ export default function ComunidadPage() {
             {auto && manual.length ? ` · ${manual.length} apuntados a mano` : ""}
           </p>
         </div>
-        {auto ? (
+        {dc.status === "cargando" ? null : auto ? (
           <button className="cm-sync" onClick={loadDiscord} title="Volver a leer el Discord">
             <RefreshCw /> <span>Se cuenta solo<small>{dc.at ? `leído a las ${new Date(dc.at).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}` : ""}</small></span>
           </button>
@@ -197,12 +217,12 @@ export default function ComunidadPage() {
         <div className="mx-stat">
           <div className="mx-stat-top"><span className="mx-stat-label">Esta semana</span><span className="mx-ico"><CalendarRange /></span></div>
           <div className="mx-stat-value">{thisWeek}</div>
-          <div className="mx-stat-sub"><Delta now={thisWeek} before={lastWeek} /> ({lastWeek})</div>
+          <div className="mx-stat-sub"><Delta now={thisWeek} before={lastWeek} first={prevWeekCounts ? undefined : "primera semana"} />{prevWeekCounts ? ` (${lastWeek})` : ""}</div>
         </div>
         <div className="mx-stat">
           <div className="mx-stat-top"><span className="mx-stat-label">Este mes</span><span className="mx-ico ok"><TrendingUp /></span></div>
           <div className="mx-stat-value">{thisMonth}</div>
-          <div className="mx-stat-sub"><Delta now={thisMonth} before={lastMonth} /> ({lastMonth})</div>
+          <div className="mx-stat-sub"><Delta now={thisMonth} before={lastMonth} first={prevMonthCounts ? undefined : "primer mes"} />{prevMonthCounts ? ` (${lastMonth})` : ""}</div>
         </div>
         <div className="mx-stat">
           <div className="mx-stat-top"><span className="mx-stat-label">Media semanal</span><span className="mx-ico ink"><Users /></span></div>
@@ -233,8 +253,10 @@ export default function ComunidadPage() {
         <div className="card">
           <h3 className="section-title">Lectura rápida</h3>
           <ul className="cm-read">
-            <li>{thisWeek > lastWeek ? `Esta semana va mejor que la anterior (${thisWeek} frente a ${lastWeek}).` : thisWeek < lastWeek ? `Esta semana va por debajo de la anterior (${thisWeek} frente a ${lastWeek}).` : `Esta semana va igual que la anterior (${thisWeek}).`}</li>
-            <li>{thisMonth >= lastMonth ? `El mes lleva ${thisMonth}, ${thisMonth - lastMonth >= 0 ? `${thisMonth - lastMonth} más` : ""} que el mes pasado (${lastMonth}).` : `El mes lleva ${thisMonth}; el pasado cerró con ${lastMonth}.`}</li>
+            <li>{!prevWeekCounts ? `Primera semana contando (desde el lunes ${shortDate(COUNT_START)}): ${thisWeek} ${thisWeek === 1 ? "persona nueva" : "personas nuevas"}. La semana que viene ya se compara con esta.`
+              : thisWeek > lastWeek ? `Esta semana va mejor que la anterior (${thisWeek} frente a ${lastWeek}).` : thisWeek < lastWeek ? `Esta semana va por debajo de la anterior (${thisWeek} frente a ${lastWeek}).` : `Esta semana va igual que la anterior (${thisWeek}).`}</li>
+            <li>{!prevMonthCounts ? `Primer mes contando: ${thisMonth} hasta ahora.`
+              : thisMonth >= lastMonth ? `El mes lleva ${thisMonth}, ${thisMonth - lastMonth} más que el mes pasado (${lastMonth}).` : `El mes lleva ${thisMonth}; el pasado cerró con ${lastMonth}.`}</li>
             {topDay && <li>El día que más gente entra es el <b>{topDay}</b>: buen día para publicar lo que más tire.</li>}
             {!total && !auto && <li>Pulsa +1 cada vez que entre alguien nuevo. Si ya había gente antes de empezar a contar, apúntala con «Otro día».</li>}
             {auto && <li>Cuenta a quien sigue en el servidor (si alguien se va, deja de contar). Quien entre por otro sitio, con «Añadir a mano».</li>}
@@ -280,6 +302,21 @@ export default function ComunidadPage() {
               {!!dc.sinPerfil && <p className="text-sm" style={{ color: "var(--text-muted)", marginTop: 10 }}>{dc.sinPerfil} de {dc.comunidad} aún sin perfil (entraron antes de que fuera obligatorio).</p>}
               {dc.niveles && <p className="text-sm" style={{ color: "var(--text-secondary)", marginTop: 6 }}>Nivel: {dc.niveles.map((n) => `${n.name} ${n.count}`).join(" · ")}</p>}
               <Link href="/posibles-clientes" className="btn-secondary" style={{ marginTop: 12, display: "inline-flex" }}>Ver posibles clientes</Link>
+              {dc.cuentas && (
+                <details className="cm-who">
+                  <summary>Quién no cuenta ({dc.cuentas.filter((c) => c.excluded).length})</summary>
+                  <p className="text-sm" style={{ color: "var(--text-muted)", margin: "6px 0 8px" }}>Marca las cuentas del equipo (y vuestras otras cuentas) para que no sumen. Se guarda para los dos.</p>
+                  {dc.cuentas.map((c) => (
+                    <label key={c.id} className={`cm-who-row${c.team ? " team" : ""}`}>
+                      <input type="checkbox" checked={c.excluded} disabled={c.team} onChange={() => toggleCuenta(c)} />
+                      <span><b>{c.name}</b> <small>@{c.username} · entró el {shortDate(c.joined_on)}{c.team ? " · equipo" : ""}</small></span>
+                    </label>
+                  ))}
+                  {manual.filter((j) => j.joined_on >= COUNT_START).length > 0 && (
+                    <p className="text-sm" style={{ marginTop: 8 }}>Además hay {manual.filter((j) => j.joined_on >= COUNT_START).length} apuntado(s) a mano: se quitan con «Deshacer».</p>
+                  )}
+                </details>
+              )}
             </>
           ) : (
             <p className="text-sm" style={{ color: "var(--text-muted)", marginTop: 12 }}>Se ve en la versión publicada: lo lee el bot del Discord.</p>

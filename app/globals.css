@@ -1682,3 +1682,10 @@ button.mx-pill:hover { filter: brightness(0.96); }
 .lc-actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 10px; }
 .lc-btn { height: 30px !important; padding: 0 10px !important; font-size: 0.75rem !important; display: inline-flex; align-items: center; gap: 5px; }
 .lc-btn svg { width: 13px; height: 13px; }
+
+/* Comunidad: quién no cuenta */
+.cm-who { margin-top: 14px; border-top: 1px solid var(--border-color); padding-top: 10px; }
+.cm-who summary { cursor: pointer; font-size: 0.875rem; font-weight: 600; }
+.cm-who-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; font-size: 0.8125rem; cursor: pointer; }
+.cm-who-row small { color: var(--text-muted); }
+.cm-who-row.team { opacity: 0.7; cursor: default; }

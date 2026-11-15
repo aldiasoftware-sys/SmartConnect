@@ -1,12 +1,13 @@
 // Posibles clientes del Discord: quien eligió «Tengo un negocio» y mensajes que suenan a encargo.
 // Lo usan /api/discord/clientes (Smart Connect y n8n) y la foto diaria (/api/discord/snapshot).
 import { ACCENT, ACTIVITY_CHANNELS, Env, FORUMS, discord } from "./discord";
-import { BUSINESS_ROLE, getSettingSrv, isTeam, leadsChannel, listMembers, scanSignals, setSettingSrv, dayMadrid } from "./comunidad";
+import { BUSINESS_ROLE, excludedIds, getSettingSrv, isTeam, leadsChannel, listMembers, scanSignals, setSettingSrv, dayMadrid } from "./comunidad";
 
 export async function collectLeads(env: Env) {
   const members = await listMembers(env);
-  const teamIds = new Set(members.filter(isTeam).map((m) => m.id));
-  const negocio = members.filter((m) => !m.bot && !isTeam(m) && m.roles.includes(BUSINESS_ROLE))
+  const excluded = await excludedIds(env, members);
+  const teamIds = new Set([...members.filter(isTeam).map((m) => m.id), ...excluded]);
+  const negocio = members.filter((m) => !m.bot && !teamIds.has(m.id) && m.roles.includes(BUSINESS_ROLE))
     .map((m) => ({ id: m.id, name: m.name, joined_on: dayMadrid(m.joined), url: `https://discord.com/users/${m.id}` }))
     .sort((a, b) => b.joined_on.localeCompare(a.joined_on));
   const forums = Object.fromEntries(Object.entries(FORUMS).filter(([, n]) => /ayuda|proyectos/.test(n)));
