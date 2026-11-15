@@ -33,8 +33,10 @@ export function KitCard({ kit, onDelete, drag }: { kit: Kit; onDelete: () => voi
   const [li, setLi] = useState<{ title: string; desc: string } | null>(null);
   const [tt, setTt] = useState<string | null>(null);
   const [ig, setIg] = useState<string | null>(null);
+  const [ruta, setRuta] = useState<string | null>(null);
 
   useEffect(() => {
+    if (kit.ruta) readText(kit.ruta.path).then((t) => setRuta(t.trim() || null)).catch(() => setRuta(null));
     for (const f of [kit.video, kit.thumb]) if (f) signedUrl(f.path).then((u) => setUrls((x) => ({ ...x, [f.path]: u }))).catch(() => {});
     if (kit.linkedin) readText(kit.linkedin.path).then((t) => {
       const m = t.match(/T[IÍ]TULO\s*\n([\s\S]*?)\n\s*\nDESCRIPCI[OÓ]N\s*\n([\s\S]*)/i);
@@ -120,8 +122,15 @@ export function KitCard({ kit, onDelete, drag }: { kit: Kit; onDelete: () => voi
           </section>
         )}
 
+        {ruta && (
+          <div className="field kit-ruta">
+            <div className="field-top"><span>Vídeo en 4K · en tu ordenador</span><CopyButton text={ruta} label="Copiar ruta" /></div>
+            <p className="field-desc" title={ruta}>{ruta}</p>
+          </div>
+        )}
+
         <div className="kit-files">
-          {[kit.video, kit.thumb].filter(Boolean).map((f) => (
+          {[ruta ? undefined : kit.video, kit.thumb].filter(Boolean).map((f) => (
             <button key={f!.path} className="kit-file" onClick={() => download(f!)}>
               {isVideo(f!) ? <Film /> : <ImageIcon />}<span>{isVideo(f!) ? "Vídeo" : "Miniatura"}</span><small>{fmtSize(f!.size)}</small><Download />
             </button>

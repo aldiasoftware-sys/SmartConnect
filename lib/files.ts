@@ -124,16 +124,19 @@ export const fmtSize = (b: number) => (b > 1e6 ? `${(b / 1e6).toFixed(1)} MB` : 
 
 /** Los archivos que dejan las skills: «<pieza> - video.mp4», «- miniatura LinkedIn.png», «- LinkedIn titulo y descripcion.txt», «- TikTok titulo.txt»
  *  y, si el vídeo también va a Instagram, «- Instagram descripcion.txt». */
-export type Kit = { name: string; video?: StoredFile; thumb?: StoredFile; linkedin?: StoredFile; tiktok?: StoredFile; instagram?: StoredFile; files: StoredFile[] };
+export type Kit = { name: string; video?: StoredFile; thumb?: StoredFile; linkedin?: StoredFile; tiktok?: StoredFile; instagram?: StoredFile; ruta?: StoredFile; files: StoredFile[] };
 
+/** «- ruta 4K.txt»: dónde está el máster en 4K en el ordenador que lo hizo (Smart Connect solo guarda 50 MB por archivo,
+ *  así que el vídeo de aquí es una copia ligera; el bueno se sube a TikTok desde esa ruta). */
 export function groupKits(files: StoredFile[]) {
   const kits = new Map<string, Kit>(); const loose: StoredFile[] = [];
   for (const f of files) {
-    const m = f.name.match(/^(.*) - (video\.\w+|miniatura LinkedIn\.\w+|LinkedIn titulo y descripcion\.txt|TikTok titulo\.txt|Instagram descripcion\.txt)$/i);
+    const m = f.name.match(/^(.*) - (video\.\w+|miniatura LinkedIn\.\w+|LinkedIn titulo y descripcion\.txt|TikTok titulo\.txt|Instagram descripcion\.txt|ruta 4K\.txt)$/i);
     if (!m) { loose.push(f); continue; }
     const k = kits.get(m[1]) || { name: m[1], files: [] }; kits.set(m[1], k); k.files.push(f);
     const part = m[2].toLowerCase();
-    if (part.startsWith("video")) k.video = f; else if (part.startsWith("miniatura")) k.thumb = f;
+    if (part.startsWith("ruta")) k.ruta = f;
+    else if (part.startsWith("video")) k.video = f; else if (part.startsWith("miniatura")) k.thumb = f;
     else if (part.startsWith("linkedin")) k.linkedin = f; else if (part.startsWith("instagram")) k.instagram = f; else k.tiktok = f;
   }
   return { kits: Array.from(kits.values()).sort((a, b) => a.name.localeCompare(b.name)), loose };

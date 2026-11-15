@@ -1218,6 +1218,8 @@ input::placeholder, textarea::placeholder {
 .copy-btn:hover { border-color: var(--ink); }
 .copy-btn svg { width: 13px; height: 13px; }
 .copy-btn.ok { background: var(--ok-soft); color: var(--ok); border-color: transparent; }
+.kit-ruta { border: 1px solid var(--border-color); border-radius: 16px; padding: 0.875rem 1.125rem; background: var(--bg-secondary); }
+.kit-ruta .field-desc { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.8125rem; word-break: break-all; white-space: normal; }
 .kit-files { display: flex; gap: 0.625rem; flex-wrap: wrap; margin-top: auto; }
 .kit-file { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); border-radius: 11px; padding: 0.55rem 0.8rem; font-family: inherit; font-size: 0.8125rem; font-weight: 600; cursor: pointer; color: var(--ink); transition: var(--transition); }
 .kit-file:hover { background: #fff; border-color: var(--ink); }
