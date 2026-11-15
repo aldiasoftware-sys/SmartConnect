@@ -41,16 +41,35 @@ export default function ContenidoPage() {
     setBusy(true); await loadWeekTemplate(week, posts); await refresh(); setBusy(false);
   }
 
-  const card = (p: Post) => {
-    const st = shownStatus(p, t); const done = isPublished(p, t);
-    // lo de la cuenta conjunta (lo que sale de Archivos › Aldia) ocupa una línea: lo publica cualquiera de los dos
-    if (isShared(p.owner) && p.archivo) return (
-      <div key={p.id} role="button" tabIndex={0} className={`post-card post-card-mini ${done ? "done" : ""}`} style={{ borderLeftColor: PLATFORMS[p.platform]?.color }} onClick={() => abrir(p)} onKeyDown={(e) => e.key === "Enter" && abrir(p)} title={`${p.title} · abrir en Archivos`}>
-        <span className="st-dot"><i style={{ background: st.color }} /></span>
-        <span className="pc-mini">Subir post {PLATFORMS[p.platform]?.label}</span>
+  // lo de la cuenta conjunta (lo que sale de Archivos › Aldia): una sola tarjeta por vídeo con su título,
+  // aunque se suba a varias redes (TikTok, Instagram…); lo publica cualquiera de los dos
+  const sharedCard = (group: Post[]) => {
+    const p = group[0]; const done = group.every((x) => isPublished(x, t));
+    const redes = group.map((x) => PLATFORMS[x.platform]?.label).join(" y ");
+    return (
+      <div key={`${p.archivo}-${p.publish_date}`} role="button" tabIndex={0} className={`post-card post-card-mini ${done ? "done" : ""}`} style={{ borderLeftColor: PLATFORMS[p.platform]?.color }} onClick={() => abrir(p)} onKeyDown={(e) => e.key === "Enter" && abrir(p)} title={`${p.title} · ${redes} · abrir en Archivos`}>
+        <span className="pc-mini">{p.title}</span>
         <button className="pc-edit" onClick={editar(p)} aria-label="Editar detalles" title="Editar detalles"><Pencil /></button>
       </div>
     );
+  };
+
+  // las tarjetas de un día: lo conjunto que sale del mismo vídeo de Archivos se junta en una
+  const dayCards = (list: Post[]) => {
+    const groups = new Map<string, Post[]>();
+    const out: (Post | Post[])[] = [];
+    for (const p of [...list].sort((a, b) => b.platform.localeCompare(a.platform))) {
+      if (isShared(p.owner) && p.archivo) {
+        const g = groups.get(p.archivo);
+        if (g) g.push(p); else { const ng = [p]; groups.set(p.archivo, ng); out.push(ng); }
+      }
+    }
+    const rest = list.filter((p) => !(isShared(p.owner) && p.archivo)).sort((a, b) => a.platform.localeCompare(b.platform));
+    return [...out.map((g) => sharedCard(g as Post[])), ...rest.map(card)];
+  };
+
+  const card = (p: Post) => {
+    const st = shownStatus(p, t); const done = isPublished(p, t);
     return (
       <div key={p.id} role="button" tabIndex={0} className={`post-card ${done ? "done" : ""}`} style={{ borderLeftColor: PLATFORMS[p.platform]?.color }} onClick={() => abrir(p)} onKeyDown={(e) => e.key === "Enter" && abrir(p)} title={p.archivo ? "Abrir este vídeo en Archivos" : "Editar"}>
         <div className="pc-top"><span>{PLATFORMS[p.platform]?.label} · {KINDS[p.kind || ""] || p.kind}</span>{isShared(p.owner) && <span>Conjunta</span>}{p.archivo && <button className="pc-edit" onClick={editar(p)} aria-label="Editar detalles" title="Editar detalles"><Pencil /></button>}</div>
@@ -116,7 +135,7 @@ export default function ContenidoPage() {
                       <span>Se graba en lote y también se publica.</span>
                     </div>
                   )}
-                  {mine.filter((p) => p.publish_date === d).sort((a, b) => a.platform.localeCompare(b.platform)).map(card)}
+                  {dayCards(mine.filter((p) => p.publish_date === d))}
                   <button className="add-slot" onClick={() => setEditing(blank(d, i === 4 ? "linkedin" : "tiktok", m.owner))}>+ Añadir</button>
                 </div>
               ))}
