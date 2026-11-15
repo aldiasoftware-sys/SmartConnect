@@ -1,7 +1,7 @@
 "use client";
 
 import { Minus, TrendingDown, TrendingUp } from "lucide-react";
-import { ACCOUNTS, Account, Post, Snapshot, addDays, contentByWeek, fmt, followerSeries, isAccountPost, pct, weekRange } from "@/lib/social";
+import { ACCOUNTS, Account, Post, Snapshot, addDays, contentByWeek, fmt, followerSeries, isAccountPost, pct, weekRange, isPublished } from "@/lib/social";
 import { Sparkline } from "@/components/SocialCharts";
 import AccountIcon from "@/components/AccountIcon";
 
@@ -46,7 +46,7 @@ export default function AccountsWeek({ week, posts, snapshots, accounts = ACCOUN
               </div>
               <div style={{ textAlign: "right" }}>
                 <div className="ci-mini">En el calendario</div>
-                <div style={{ fontWeight: 500, fontSize: "1.125rem" }}>{plan.length ? `${plan.filter((p) => p.status === "publicado").length}/${plan.length} ${a.platform === "linkedin" ? "posts" : "vídeos"}` : "—"}</div>
+                <div style={{ fontWeight: 500, fontSize: "1.125rem" }}>{plan.length ? `${plan.filter((p) => isPublished(p)).length}/${plan.length} ${a.platform === "linkedin" ? "posts" : "vídeos"}` : "—"}</div>
                 <div className="section-sub">{hist.length ? `${histPct}% cumplido` : "sin historial"}</div>
               </div>
             </div>

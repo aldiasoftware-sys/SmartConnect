@@ -184,7 +184,8 @@ function Redes({ auth, flash }: { auth: Record<string, string>; flash: (m: strin
   const [form, setForm] = useState({ platform: "tiktok", url: "", text: "", also: false });
 
   async function load() {
-    const { data } = await supabase.from("content_posts").select("*").eq("status", "publicado").order("publish_date", { ascending: false }).limit(60);
+    // publicado = marcado antes o con el día ya pasado
+    const { data } = await supabase.from("content_posts").select("*").or(`status.eq.publicado,publish_date.lt.${today()}`).order("publish_date", { ascending: false }).limit(60);
     setPosts(((data as any[]) || []).filter((p) => p.platform in SOCIAL_TARGETS));
   }
   useEffect(() => { load(); }, []);

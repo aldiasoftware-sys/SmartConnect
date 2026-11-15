@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ChevronLeft, ChevronRight, Plus, Wand2, HardDrive, AlertTriangle, Pencil } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useSocial } from "@/lib/SocialContext";
-import { DIAS, KINDS, PLATFORMS, Post, STATUSES, TARGETS, addDays, contentByWeek, fromISO, shortDate, statusOf, today, weekLabel, weekNumber, weekStart } from "@/lib/social";
+import { DIAS, KINDS, PLATFORMS, Post, STATUSES, TARGETS, addDays, contentByWeek, fromISO, isPublished, shortDate, shownStatus, statusOf, today, weekLabel, weekNumber, weekStart } from "@/lib/social";
 import { loadWeekTemplate } from "@/lib/content";
 import PostEditor from "@/components/PostEditor";
 import AccountsWeek from "@/components/AccountsWeek";
@@ -42,21 +42,21 @@ export default function ContenidoPage() {
   }
 
   const card = (p: Post) => {
-    const st = statusOf(p.status); const failed = p.status !== "publicado" && !!p.publish_date && p.publish_date < t;
+    const st = shownStatus(p, t); const done = isPublished(p, t);
     // lo de la cuenta conjunta (lo que sale de Archivos › Aldia) ocupa una línea: lo publica cualquiera de los dos
     if (isShared(p.owner) && p.archivo) return (
-      <div key={p.id} role="button" tabIndex={0} className={`post-card post-card-mini ${failed ? "failed" : ""} ${p.status === "publicado" ? "done" : ""}`} style={{ borderLeftColor: PLATFORMS[p.platform]?.color }} onClick={() => abrir(p)} onKeyDown={(e) => e.key === "Enter" && abrir(p)} title={`${p.title} · abrir en Archivos`}>
-        <span className="st-dot"><i style={{ background: failed ? "var(--bad)" : st.color }} /></span>
+      <div key={p.id} role="button" tabIndex={0} className={`post-card post-card-mini ${done ? "done" : ""}`} style={{ borderLeftColor: PLATFORMS[p.platform]?.color }} onClick={() => abrir(p)} onKeyDown={(e) => e.key === "Enter" && abrir(p)} title={`${p.title} · abrir en Archivos`}>
+        <span className="st-dot"><i style={{ background: st.color }} /></span>
         <span className="pc-mini">Subir post {PLATFORMS[p.platform]?.label}</span>
         <button className="pc-edit" onClick={editar(p)} aria-label="Editar detalles" title="Editar detalles"><Pencil /></button>
       </div>
     );
     return (
-      <div key={p.id} role="button" tabIndex={0} className={`post-card ${failed ? "failed" : ""} ${p.status === "publicado" ? "done" : ""}`} style={{ borderLeftColor: PLATFORMS[p.platform]?.color }} onClick={() => abrir(p)} onKeyDown={(e) => e.key === "Enter" && abrir(p)} title={p.archivo ? "Abrir este vídeo en Archivos" : "Editar"}>
+      <div key={p.id} role="button" tabIndex={0} className={`post-card ${done ? "done" : ""}`} style={{ borderLeftColor: PLATFORMS[p.platform]?.color }} onClick={() => abrir(p)} onKeyDown={(e) => e.key === "Enter" && abrir(p)} title={p.archivo ? "Abrir este vídeo en Archivos" : "Editar"}>
         <div className="pc-top"><span>{PLATFORMS[p.platform]?.label} · {KINDS[p.kind || ""] || p.kind}</span>{isShared(p.owner) && <span>Conjunta</span>}{p.archivo && <button className="pc-edit" onClick={editar(p)} aria-label="Editar detalles" title="Editar detalles"><Pencil /></button>}</div>
         <div className="pc-title">{p.title}</div>
         <div className="flex items-center justify-between" style={{ marginTop: 6, gap: 6 }}>
-          <span className="st-dot"><i style={{ background: failed ? "var(--bad)" : st.color }} />{failed ? "Sin publicar" : st.label}</span>
+          <span className="st-dot"><i style={{ background: st.color }} />{st.label}</span>
           {p.keyword && <span className="chip" style={{ fontSize: 10, padding: "1px 7px" }}>{p.keyword}</span>}
         </div>
       </div>

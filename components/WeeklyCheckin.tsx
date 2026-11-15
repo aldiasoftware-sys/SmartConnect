@@ -1,21 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { X, CalendarCheck, Check, Minus, Timer } from "lucide-react";
+import { X, CalendarCheck, Timer } from "lucide-react";
 import { useSocial } from "@/lib/SocialContext";
-import { ACCOUNTS, ROUTINE_PLATFORMS, KINDS, PLATFORMS, Post, Snapshot, TARGETS, addDays, checkinWeek, contentByWeek, countdown, fmt, nextCheckinAt, shortDate, toISO, weekLabel, weekNumber } from "@/lib/social";
-import { saveRow, upsertRows } from "@/lib/store";
+import { ACCOUNTS, ROUTINE_PLATFORMS, Post, Snapshot, TARGETS, addDays, checkinWeek, contentByWeek, countdown, fmt, nextCheckinAt, shortDate, toISO, weekLabel, weekNumber } from "@/lib/social";
+import { upsertRows } from "@/lib/store";
 import AccountIcon from "./AccountIcon";
 import Portal from "./Portal";
 
 type Vals = Record<string, string>;
 const num = (v: string) => (v.trim() === "" ? null : Math.max(0, Math.round(Number(v))));
 
-/** Check-in semanal (se abre cada lunes a las 8:00): seguidores y repaso de lo que quedó sin publicar la semana pasada. */
+/** Check-in semanal (se abre cada lunes a las 8:00): seguidores y resumen de lo publicado la semana pasada (al pasar el día se da por publicado). */
 export default function WeeklyCheckin() {
   const { checkinWeek: week, closeCheckin, snapshots, posts, refresh } = useSocial();
   const [followers, setFollowers] = useState<Vals>({});
-  const [done, setDone] = useState<Record<string, boolean>>({});
   const [, tick] = useState(0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -36,24 +35,19 @@ export default function WeeklyCheckin() {
       const r = snapshots.find((x) => x.week_start === week && x.account === a.id);
       return [a.id, r ? String(r.followers) : ""];
     })));
-    setDone(Object.fromEntries(prevPosts.map((p) => [p.id!, p.status === "publicado"])));
     setError("");
   }, [week]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!week) return null;
 
   const lastKnown = (acc: string) => [...snapshots].filter((s) => s.account === acc && s.week_start < week).sort((a, b) => b.week_start.localeCompare(a.week_start))[0];
-  const prevStats = contentByWeek(prevPosts.map((p) => ({ ...p, status: done[p.id!] ? "publicado" : p.status === "publicado" ? "montado" : p.status })), [prev])[0];
+  const prevStats = contentByWeek(prevPosts, [prev])[0];
 
   async function save() {
     setSaving(true); setError("");
     try {
       await upsertRows("social_snapshots", ACCOUNTS.filter((a) => num(followers[a.id] || "") !== null)
         .map((a) => ({ week_start: week!, account: a.id, followers: num(followers[a.id])! } as Snapshot)));
-      for (const p of prevPosts) {
-        const was = p.status === "publicado", now = !!done[p.id!];
-        if (was !== now) await saveRow<Post>("content_posts", { ...p, status: now ? "publicado" : "montado" });
-      }
       await refresh();
       closeCheckin();
     } catch (e: any) {
@@ -103,7 +97,7 @@ export default function WeeklyCheckin() {
             <div className="ci-step"><span>1</span> ¿Cuántos seguidores tenemos hoy?</div>
             {ACCOUNTS.map(row)}
 
-            <div className="ci-step" style={{ marginTop: "1.5rem" }}><span>2</span> La semana pasada, ¿se publicó todo?</div>
+            <div className="ci-step" style={{ marginTop: "1.5rem" }}><span>2</span> Lo publicado la semana pasada</div>
             {prevPosts.length === 0 ? (
               <p className="section-sub" style={{ padding: "0.25rem 0 0.5rem" }}>La semana pasada no había nada en el calendario de contenido.</p>
             ) : (
@@ -113,18 +107,7 @@ export default function WeeklyCheckin() {
                   <span className={`chip ${prevStats.instagram >= TARGETS.instagram ? "chip-ok" : "chip-bad"}`}>Instagram {prevStats.instagram}/{TARGETS.instagram}</span>
                   <span className={`chip ${prevStats.linkedin >= TARGETS.linkedin ? "chip-ok" : "chip-bad"}`}>LinkedIn {prevStats.linkedin}/{TARGETS.linkedin}</span>
                 </div>
-                {prevPosts.map((p) => (
-                  <div key={p.id} className="ci-row" style={{ gridTemplateColumns: "1fr auto" }}>
-                    <div className="ci-acc">
-                      <span className="acc-ico" style={{ background: PLATFORMS[p.platform].color, width: 30, height: 30, fontSize: 11 }}>{PLATFORMS[p.platform].label.slice(0, 2)}</span>
-                      <div><b style={{ fontSize: "0.8125rem" }}>{p.title}</b><small>{shortDate(p.publish_date!)} · {KINDS[p.kind || ""] || p.kind}</small></div>
-                    </div>
-                    <div className="seg">
-                      <button className={done[p.id!] ? "on" : ""} onClick={() => setDone({ ...done, [p.id!]: true })}><Check style={{ width: 13, height: 13, verticalAlign: -2 }} /> Publicado</button>
-                      <button className={!done[p.id!] ? "on" : ""} onClick={() => setDone({ ...done, [p.id!]: false })}><Minus style={{ width: 13, height: 13, verticalAlign: -2 }} /> No</button>
-                    </div>
-                  </div>
-                ))}
+                <p className="section-sub" style={{ padding: 0 }}>Todo lo que estaba en el calendario cuenta como publicado: ya no hace falta marcarlo.</p>
               </>
             )}
 

@@ -84,6 +84,13 @@ export const STATUSES = [
 ];
 export const statusOf = (id: string) => STATUSES.find((s) => s.id === id) || STATUSES[0];
 
+/** Ya no se marca «Publicado» a mano: lo que tiene fecha y el día ya ha pasado se da por publicado. */
+export const isPublished = (p: { status: string; publish_date?: string | null }, t = today()) =>
+  p.status === "publicado" || (!!p.publish_date && p.publish_date < t);
+/** El estado que se enseña: «Publicado» si el día ya pasó; si no, el de la pieza (idea, guion, voz, montado). */
+export const shownStatus = (p: { status: string; publish_date?: string | null }, t = today()) =>
+  isPublished(p, t) ? statusOf("publicado") : statusOf(p.status);
+
 /** Mínimos de la semana: un post al día, los siete días (el fin de semana también se publica, además de grabar), en el TikTok y el
  *  Instagram de Aldia; LinkedIn, los posts personales de Guille y Millán. (Guille ya no tiene TikTok ni Instagram personales aquí.) */
 export const TARGETS = { tiktok: 7, instagram: 7, linkedin: 5 };
@@ -108,13 +115,13 @@ export const TEMPLATE_DAY = [0, 1, 2, 3, 3, 4]; // lunes… viernes, en el mismo
 
 export type WeekContent = { week: string; tiktok: number; instagram: number; linkedin: number; planned: number; published: number; failed: number; reviewed: boolean };
 
-/** Publicaciones de cada semana: lo publicado, lo planificado y los fallos (planificado, con la fecha pasada y sin publicar). */
+/** Publicaciones de cada semana: lo publicado (todo lo de días pasados cuenta como publicado) y lo planificado. */
 export function contentByWeek(posts: Post[], weeks: string[], platform?: string): WeekContent[] {
   const t = today();
   return weeks.map((w) => {
     const end = addDays(w, 6);
     const ps = posts.filter((p) => p.publish_date && p.publish_date >= w && p.publish_date <= end && (!platform || p.platform === platform) && ROUTINE_PLATFORMS.includes(p.platform));
-    const pub = ps.filter((p) => p.status === "publicado");
+    const pub = ps.filter((p) => isPublished(p, t));
     return {
       week: w,
       tiktok: pub.filter((p) => p.platform === "tiktok").length,
@@ -122,7 +129,7 @@ export function contentByWeek(posts: Post[], weeks: string[], platform?: string)
       linkedin: pub.filter((p) => p.platform === "linkedin").length,
       planned: ps.length,
       published: pub.length,
-      failed: ps.filter((p) => p.status !== "publicado" && p.publish_date! < t).length,
+      failed: 0,   // ya no hay «sin publicar»: al pasar el día se da por publicado
       reviewed: end < t,
     };
   });

@@ -81,7 +81,7 @@ export default function PostEditor({ post, onClose, onSaved }: { post: Post; onC
             </div>
             <div className="form-group"><label>Estado</label>
               <div className="seg" style={{ flexWrap: "wrap" }}>
-                {STATUSES.map((s) => (
+                {STATUSES.filter((s) => s.id !== "publicado").map((s) => (
                   <button type="button" key={s.id} className={p.status === s.id ? "on" : ""} onClick={() => set("status", s.id)}>
                     <i style={{ width: 7, height: 7, borderRadius: 9, background: s.color, display: "inline-block", marginRight: 6, verticalAlign: 1 }} />{s.label}
                   </button>
@@ -103,7 +103,6 @@ export default function PostEditor({ post, onClose, onSaved }: { post: Post; onC
           <div className="dialog-foot">
             {p.id ? <button type="button" className="btn-danger" onClick={remove}><Trash2 style={{ width: 15, height: 15 }} /> Borrar</button> : <span />}
             <div className="flex gap-2">
-              {p.status !== "publicado" && <button type="button" className="btn-secondary" disabled={saving} onClick={() => save({ ...p, status: "publicado" })}><Check style={{ width: 15, height: 15 }} /> Publicado</button>}
               <button type="submit" className="btn-primary" disabled={saving}>{saving ? "Guardando…" : "Guardar"}</button>
             </div>
           </div>
