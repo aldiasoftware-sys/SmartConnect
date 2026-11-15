@@ -49,13 +49,13 @@ export async function listMembers(env: Env): Promise<Member[]> {
 
 export const isTeam = (m: { roles: string[] }) => m.roles.some((r) => TEAM_ROLES.includes(r));
 
-/** Cuentas del equipo que no cuentan como comunidad (Guille, Millán y la cuenta ALDIA) mientras no se elija otra cosa. */
-export const DEFAULT_EXCLUDED_USERNAMES = ["rguiillee", "zzmillan", "aldiaproject"];
+/** Cuentas del equipo que no cuentan como comunidad (Guille, Millán, la cuenta ALDIA y la otra cuenta de Millán) mientras no se elija otra cosa. */
+export const DEFAULT_EXCLUDED_USERNAMES = ["rguiillee", "zzmillan", "aldiaproject", "alexelinvestigad_45986"];
 
 /** Ids que no cuentan: los marcados en Smart Connect (app_settings «discord_excluidos») o, si nunca se ha tocado, los del equipo. */
 export async function excludedIds(env: Env, members: Member[]): Promise<Set<string>> {
   const saved = await getSettingSrv<string[] | null>(env, "discord_excluidos", null);
-  if (saved) return new Set(saved);
+  if (saved) return new Set(members.filter((m) => saved.includes(m.id) || saved.includes(m.username)).map((m) => m.id));
   return new Set(members.filter((m) => DEFAULT_EXCLUDED_USERNAMES.includes(m.username)).map((m) => m.id));
 }
 
