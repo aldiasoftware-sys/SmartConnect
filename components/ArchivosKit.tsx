@@ -1,13 +1,46 @@
 "use client";
 
 import { HTMLAttributes, useEffect, useState } from "react";
-import { Download, Copy, Check, FileText, Film, Image as ImageIcon, File as FileIcon, Clock, Linkedin, Instagram, FolderOpen } from "lucide-react";
+import { Download, Copy, Check, FileText, Film, Image as ImageIcon, File as FileIcon, Clock, FolderOpen, Pencil, X } from "lucide-react";
 import { fromISO, shortDate, today } from "@/lib/social";
-import { Kit, StoredFile, deletesOn, fmtSize, isImage, isText, isVideo, readText, signedUrl } from "@/lib/files";
+import { Kit, StoredFile, deletesOn, fmtSize, isImage, isText, isVideo, readText, signedUrl, writeText } from "@/lib/files";
+import { BrandLogo } from "./AccountIcon";
 import { CardMenu } from "./Papelera";
 export { groupKits } from "@/lib/files";
 
 const daysLeft = (created: string, date?: string) => Math.max(0, Math.round((fromISO(deletesOn(created, date)).getTime() - fromISO(today()).getTime()) / 86400000));
+
+/** Una línea por red: logo, texto en una línea, Editar (guarda en Archivos) y Copiar. */
+function NetRow({ platform, label, path, text, onSaved }: { platform: string; label: string; path: string; text: string | null; onSaved: (t: string) => void }) {
+  const [edit, setEdit] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [ok, setOk] = useState(false);
+  async function guardar() {
+    if (edit === null) return; setBusy(true);
+    try { await writeText(path, edit.trim() + "\n"); onSaved(edit.trim()); setEdit(null); } catch (e: any) { alert(e?.message || "No se ha podido guardar"); }
+    setBusy(false);
+  }
+  return (
+    <div className={`net-row ${edit !== null ? "editing" : ""}`}>
+      <BrandLogo platform={platform} size={26} />
+      {edit === null ? (
+        <>
+          <div className="net-row-text" title={text || ""}><small>{label}</small><span>{text ?? "Cargando…"}</span></div>
+          <button className="icon-btn sm" onClick={() => setEdit(text || "")} title="Editar" aria-label={`Editar ${label}`}><Pencil /></button>
+          <button className={`icon-btn sm ${ok ? "ok" : ""}`} disabled={!text} title={ok ? "Copiado" : "Copiar"} aria-label={`Copiar ${label}`}
+            onClick={async () => { await navigator.clipboard.writeText(text || ""); setOk(true); setTimeout(() => setOk(false), 1500); }}>{ok ? <Check /> : <Copy />}</button>
+        </>
+      ) : (
+        <>
+          <textarea autoFocus value={edit} onChange={(e) => setEdit(e.target.value)} rows={Math.min(6, Math.max(2, Math.ceil(edit.length / 70)))}
+            onKeyDown={(e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) guardar(); if (e.key === "Escape") setEdit(null); }} />
+          <button className="icon-btn sm ok" onClick={guardar} disabled={busy} title="Guardar (Ctrl+Enter)" aria-label="Guardar"><Check /></button>
+          <button className="icon-btn sm" onClick={() => setEdit(null)} title="Cancelar" aria-label="Cancelar"><X /></button>
+        </>
+      )}
+    </div>
+  );
+}
 
 function CopyButton({ text, label = "Copiar" }: { text: string; label?: string }) {
   const [ok, setOk] = useState(false);
@@ -69,7 +102,7 @@ function AbrirCarpeta({ ruta }: { ruta: string }) {
 
   return (
     <>
-      <a className="copy-btn" href={enlace} onClick={abrir}>{nota === "abierto" ? <Check /> : <FolderOpen />} {nota === "abierto" ? "Abierto en tu carpeta" : "Abrir en la carpeta"}</a>
+      <a className="copy-btn" href={enlace} onClick={abrir}>{nota === "abierto" ? <Check /> : <FolderOpen />} {nota === "abierto" ? "Abierto" : "Carpeta"}</a>
       {nota === "no_esta" && (
         <p className="kit-ruta-nota">Este vídeo no está en este ordenador: su máster en 4K se quedó en el PC que lo renderizó ({pcDe(ruta).replace(/^en el /, "el ")}). Pídeselo o súbelo desde allí.</p>
       )}
@@ -88,7 +121,6 @@ function AbrirCarpeta({ ruta }: { ruta: string }) {
 export function KitCard({ kit, onDelete, drag }: { kit: Kit; onDelete: () => void; drag?: HTMLAttributes<HTMLDivElement> }) {
   const [tab, setTab] = useState<"video" | "thumb">(kit.video ? "video" : "thumb");
   const [urls, setUrls] = useState<Record<string, string>>({});
-  const [li, setLi] = useState<{ title: string; desc: string } | null>(null);
   const [tt, setTt] = useState<string | null>(null);
   const [ig, setIg] = useState<string | null>(null);
   const [ruta, setRuta] = useState<string | null>(null);
@@ -96,10 +128,6 @@ export function KitCard({ kit, onDelete, drag }: { kit: Kit; onDelete: () => voi
   useEffect(() => {
     if (kit.ruta) readText(kit.ruta.path).then((t) => setRuta(t.trim() || null)).catch(() => setRuta(null));
     for (const f of [kit.video, kit.thumb]) if (f) signedUrl(f.path).then((u) => setUrls((x) => ({ ...x, [f.path]: u }))).catch(() => {});
-    if (kit.linkedin) readText(kit.linkedin.path).then((t) => {
-      const m = t.match(/T[IÍ]TULO\s*\n([\s\S]*?)\n\s*\nDESCRIPCI[OÓ]N\s*\n([\s\S]*)/i);
-      setLi(m ? { title: m[1].trim(), desc: m[2].trim() } : { title: "", desc: t.trim() });
-    }).catch(() => setLi({ title: "", desc: "(no se ha podido leer)" }));
     if (kit.tiktok) readText(kit.tiktok.path).then((t) => setTt(t.trim())).catch(() => setTt("(no se ha podido leer)"));
     if (kit.instagram) readText(kit.instagram.path).then((t) => setIg(t.trim())).catch(() => setIg("(no se ha podido leer)"));
   }, [kit.name]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -136,62 +164,19 @@ export function KitCard({ kit, onDelete, drag }: { kit: Kit; onDelete: () => voi
           </div>
         </div>
 
-        {kit.linkedin && (
-          <section className="net net-li">
-            <header><span className="net-ico" style={{ background: "#0a66c2" }}><Linkedin /></span> LinkedIn</header>
-            {li === null ? <p className="text-muted text-sm">Cargando…</p> : (
-              <>
-                {li.title && (
-                  <div className="field">
-                    <div className="field-top"><span>Título</span><CopyButton text={li.title} /></div>
-                    <p className="field-title">{li.title}</p>
-                  </div>
-                )}
-                <div className="field">
-                  <div className="field-top"><span>Descripción</span><CopyButton text={li.desc} /></div>
-                  <p className="field-desc">{li.desc}</p>
-                </div>
-              </>
-            )}
-          </section>
-        )}
-
-        {kit.tiktok && (
-          <section className="net net-tt">
-            <header>
-              <span className="net-ico" style={{ background: "#0e0e0e" }}>
-                <svg viewBox="0 0 24 24" fill="none" aria-hidden><path d="M14.5 3c.4 2.3 1.9 3.8 4.5 4v3.1c-1.7 0-3.2-.5-4.5-1.4v6.4a5.6 5.6 0 1 1-5.6-5.6c.3 0 .6 0 .9.1v3.2a2.5 2.5 0 1 0 1.6 2.3V3h3.1z" fill="#fff" /></svg>
-              </span> TikTok
-            </header>
-            <div className="field">
-              <div className="field-top"><span>Título</span>{tt && <CopyButton text={tt} />}</div>
-              <p className="field-title">{tt ?? "Cargando…"}</p>
-            </div>
-          </section>
-        )}
-
-        {kit.instagram && (
-          <section className="net net-ig">
-            <header><span className="net-ico" style={{ background: "linear-gradient(45deg, #fd5949, #d6249f 55%, #285aeb)" }}><Instagram /></span> Instagram</header>
-            <div className="field">
-              <div className="field-top"><span>Pie del Reel</span>{ig && <CopyButton text={ig} />}</div>
-              <p className="field-desc">{ig ?? "Cargando…"}</p>
-            </div>
-          </section>
-        )}
-
-        {ruta && (
-          <div className="field kit-ruta">
-            <div className="field-top"><span>Vídeo en 4K · {pcDe(ruta)}</span></div>
-            <p className="field-desc" title={ruta}>{ruta}</p>
-            <div className="kit-ruta-acciones">
-              {/* aldia4k:// lo abre el programita abrir4k.pyw de la skill (registrado en cada PC): solo viaja el NOMBRE del archivo
-                  y cada ordenador lo busca en su propia carpeta Vídeos\TikTok 4K; si no está allí, avisa */}
-              <CopyButton text={ruta} label="Copiar ruta" />
+        {/* LinkedIn en pausa: su texto sigue en Archivos, pero no se enseña */}
+        <div className="net-rows">
+          {kit.tiktok && <NetRow platform="tiktok" label="TikTok" path={kit.tiktok.path} text={tt} onSaved={setTt} />}
+          {kit.instagram && <NetRow platform="instagram" label="Instagram" path={kit.instagram.path} text={ig} onSaved={setIg} />}
+          {ruta && (
+            <div className="net-row">
+              <span className="net-4k">4K</span>
+              <div className="net-row-text" title={ruta}><small>Máster {pcDe(ruta)}</small><span>{nombreArchivo(ruta)}</span></div>
+              <CopyButton text={ruta} label="Ruta" />
               <AbrirCarpeta ruta={ruta} />
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         <div className="kit-files">
           {[ruta ? undefined : kit.video, kit.thumb].filter(Boolean).map((f) => (

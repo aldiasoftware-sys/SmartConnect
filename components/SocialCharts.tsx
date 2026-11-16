@@ -70,21 +70,8 @@ export function LineChart({ weeks, lines, height = 260 }: { weeks: string[]; lin
   );
 }
 
-/** Mini línea para las tarjetas de cada cuenta. */
-export function Sparkline({ values, color, width = 120, height = 36 }: { values: (number | null)[]; color: string; width?: number; height?: number }) {
-  const v = values.filter((n): n is number => n !== null);
-  if (v.length < 2) return <svg width={width} height={height} />;
-  const min = Math.min(...v), max = Math.max(...v), span = max - min || 1;
-  const pts = v.map((n, i) => [(i / (v.length - 1)) * width, height - 3 - ((n - min) / span) * (height - 6)]);
-  const d = pts.map(([a, b], i) => `${i ? "L" : "M"}${a.toFixed(1)},${b.toFixed(1)}`).join(" ");
-  return (
-    <svg width={width} height={height} style={{ overflow: "visible" }}>
-      <path d={`${d} L${width},${height} L0,${height} Z`} fill={color} opacity="0.1" />
-      <path d={d} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx={pts[pts.length - 1][0]} cy={pts[pts.length - 1][1]} r="3" fill={color} />
-    </svg>
-  );
-}
+/** Mini línea para las tarjetas de cada cuenta (la moderna de charts.tsx). */
+export { Sparkline } from "./charts";
 
 /** Publicaciones planificadas (gris) vs. subidas (negro / rojo si faltaron) por semana. */
 export function PostsBars({ rows }: { rows: { week: string; planned: number; published: number; reviewed: boolean; failed: number }[] }) {

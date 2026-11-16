@@ -1,16 +1,22 @@
 // Modelo del Roadmap de arranque de ALDIA (v2): cuentas, contenido, comunidad, ofertas y sus métricas.
 
 // ===================== CUENTAS =====================
-export type Platform = "linkedin" | "tiktok" | "instagram" | "own";
+export type Platform = "linkedin" | "tiktok" | "instagram" | "youtube" | "own";
 export type Account = { id: string; platform: Platform; name: string; owner: string; color: string; optional?: boolean };
 
 /** Redes (seguidores) */
 export const ACCOUNTS: Account[] = [
   { id: "tiktok_aldia", platform: "tiktok", name: "TikTok", owner: "Aldia (conjunta)", color: "#fe2c55" },
   { id: "instagram_aldia", platform: "instagram", name: "Instagram", owner: "Aldia (conjunta)", color: "#d6249f", optional: true },
+  // YouTube Shorts: los suscriptores los apunta solo el PC (aldia-youtube, cada 30 min), no hace falta el check-in
+  { id: "youtube_aldia", platform: "youtube", name: "YouTube", owner: "Aldia (conjunta)", color: "#ff0000", optional: true },
+];
+/** LinkedIn queda en pausa (16-11-2026): fuera de cuentas, calendario y mínimos. Para volver, devolverlas a ACCOUNTS. */
+export const PAUSED_ACCOUNTS: Account[] = [
   { id: "linkedin_guille", platform: "linkedin", name: "LinkedIn", owner: "Guille", color: "#0a66c2" },
   { id: "linkedin_millan", platform: "linkedin", name: "LinkedIn", owner: "Millán", color: "#5b6472" },
 ];
+export const PAUSED_PLATFORMS = ["linkedin"];
 /** Comunidad propia (lo que no alquilamos a las redes) */
 export const OWN_CHANNELS: Account[] = [
   { id: "canal_avisos", platform: "own", name: "Canal de avisos", owner: "Telegram / WhatsApp", color: "#229ed9", optional: true },
@@ -66,6 +72,7 @@ export const PLATFORMS: Record<string, { label: string; color: string; soft: str
   tiktok: { label: "TikTok", color: "#fe2c55", soft: "#ffe8ed" },
   linkedin: { label: "LinkedIn", color: "#0a66c2", soft: "#e3eefa" },
   instagram: { label: "Instagram", color: "#d6249f", soft: "#fbe6f4" },
+  youtube: { label: "YouTube Shorts", color: "#ff0000", soft: "#ffe5e5" },
   newsletter: { label: "Newsletter", color: "#0e0e0e", soft: "#eceef1" },
   directo: { label: "Directo", color: "#e8590c", soft: "#ffeadc" },
   telegram: { label: "Telegram", color: "#229ed9", soft: "#e2f3fb" },
@@ -93,10 +100,10 @@ export const shownStatus = (p: { status: string; publish_date?: string | null },
 
 /** Mínimos de la semana: un post al día, los siete días (el fin de semana también se publica, además de grabar), en el TikTok y el
  *  Instagram de Aldia; LinkedIn, los posts personales de Guille y Millán. (Guille ya no tiene TikTok ni Instagram personales aquí.) */
-export const TARGETS = { tiktok: 7, instagram: 7, linkedin: 5 };
+export const TARGETS = { tiktok: 7, instagram: 7, youtube: 7 };
 
 /** Las redes que cuentan para la rutina semanal. */
-export const ROUTINE_PLATFORMS = ["tiktok", "instagram", "linkedin"];
+export const ROUTINE_PLATFORMS = ["tiktok", "instagram", "youtube"];
 
 /** ¿Esta pieza se publica en esta cuenta? El TikTok y el Instagram de Aldia los publica cualquiera de los dos; lo de Guille va a sus cuentas. */
 export const isAccountPost = (a: Account, p: { platform: string; owner: string | null }) =>
@@ -108,12 +115,10 @@ export const WEEK_TEMPLATE: Omit<Post, "publish_date">[] = [
   { platform: "tiktok", kind: "automatizacion", owner: "Aldia", title: "Automatización de la semana · «Comenta PALABRA»", keyword: "", status: "idea" },
   { platform: "tiktok", kind: "tutorial", owner: "Aldia", title: "Tutorial paso a paso con la pantalla real", status: "idea" },
   { platform: "tiktok", kind: "caso", owner: "Aldia", title: "Caso real de uno de nuestros sectores", status: "idea" },
-  { platform: "linkedin", kind: "caso", owner: "Guille", title: "El caso de la semana y lo aprendido", status: "idea" },
-  { platform: "linkedin", kind: "pregunta", owner: "Millán", title: "Pregunta del viernes (encuesta o pregunta abierta)", status: "idea" },
 ];
-export const TEMPLATE_DAY = [0, 1, 2, 3, 3, 4]; // lunes… viernes, en el mismo orden que WEEK_TEMPLATE
+export const TEMPLATE_DAY = [0, 1, 2, 3]; // lunes… viernes, en el mismo orden que WEEK_TEMPLATE
 
-export type WeekContent = { week: string; tiktok: number; instagram: number; linkedin: number; planned: number; published: number; failed: number; reviewed: boolean };
+export type WeekContent = { week: string; tiktok: number; instagram: number; youtube: number; planned: number; published: number; failed: number; reviewed: boolean };
 
 /** Publicaciones de cada semana: lo publicado (todo lo de días pasados cuenta como publicado) y lo planificado. */
 export function contentByWeek(posts: Post[], weeks: string[], platform?: string): WeekContent[] {
@@ -126,7 +131,7 @@ export function contentByWeek(posts: Post[], weeks: string[], platform?: string)
       week: w,
       tiktok: pub.filter((p) => p.platform === "tiktok").length,
       instagram: pub.filter((p) => p.platform === "instagram").length,
-      linkedin: pub.filter((p) => p.platform === "linkedin").length,
+      youtube: pub.filter((p) => p.platform === "youtube").length,
       planned: ps.length,
       published: pub.length,
       failed: 0,   // ya no hay «sin publicar»: al pasar el día se da por publicado
@@ -135,7 +140,7 @@ export function contentByWeek(posts: Post[], weeks: string[], platform?: string)
   });
 }
 /** ¿Se cumplió el mínimo de la rutina esa semana? */
-export const metMinimum = (c: WeekContent) => c.tiktok >= TARGETS.tiktok && c.instagram >= TARGETS.instagram && c.linkedin >= TARGETS.linkedin;
+export const metMinimum = (c: WeekContent) => c.tiktok >= TARGETS.tiktok && c.instagram >= TARGETS.instagram && c.youtube >= TARGETS.youtube;
 
 // ===================== SEGUIDORES =====================
 /** Semanas con algún dato, de la más antigua a la más reciente, sin huecos. */
@@ -190,7 +195,7 @@ export const LADDER = [
   { n: 5, label: "Participar", desc: "Directos, webinars, comunidad cerrada" },
   { n: 6, label: "Hablar con ALDIA", desc: "Diagnóstico gratuito de 30 minutos" },
 ];
-export const ORIGINS = ["LinkedIn", "TikTok", "Web", "Boca a boca"];
+export const ORIGINS = ["TikTok", "Instagram", "YouTube", "Web", "Boca a boca", "LinkedIn"];
 /** Abrir Skool cuando haya entre 30 y 50 personas que respondan */
 export const SKOOL_AT = 30;
 export const hoursWaiting = (p: Person) => (p.pending_reply && p.pending_since ? (Date.now() - new Date(p.pending_since).getTime()) / 3600000 : 0);

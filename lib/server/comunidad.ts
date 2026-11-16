@@ -19,6 +19,7 @@ export const REDES = [
   { id: "instagram", label: "Instagram" },
   { id: "linkedin", label: "LinkedIn" },
   { id: "youtube", label: "YouTube" },
+  { id: "discord", label: "Discord" },
   { id: "web", label: "Web" },
 ] as const;
 

@@ -1,8 +1,9 @@
 "use client";
 
+import { ColumnChart } from "@/components/charts";
+
 import { useSales } from "@/lib/SalesContext";
 import { TrendingUp, BarChart3, PieChart, Zap } from "lucide-react";
-import InvitesCard from "@/components/InvitesCard";
 
 export default function AnalyticsPage() {
   const { sales } = useSales();
@@ -17,7 +18,6 @@ export default function AnalyticsPage() {
 
   // MRR by client for bar chart
   const paidSales = sales.filter(s => s.status === "pagado" && Number(s.monthly) > 0);
-  const maxMRR = Math.max(...paidSales.map(s => Number(s.monthly)), 1);
 
   // Status distribution percentages
   const pctActive = totalClients ? Math.round((activeClients / totalClients) * 100) : 0;
@@ -28,7 +28,6 @@ export default function AnalyticsPage() {
   const fibSeed = Math.max(activeClients, 1);
   const fib: number[] = [fibSeed, fibSeed];
   for (let i = 2; i < 10; i++) fib[i] = fib[i - 1] + fib[i - 2];
-  const maxFib = Math.max(...fib, 1);
 
   const stats = [
     { label: "MRR Activo", val: `€${totalMRR.toLocaleString()}`, sub: `${activeClients} clientes cobrados`, icon: TrendingUp },
@@ -62,7 +61,6 @@ export default function AnalyticsPage() {
       </div>
 
       {/* qué red trae gente a la comunidad (enlaces de Discord por red) */}
-      <div style={{ marginBottom: "1.5rem" }}><InvitesCard compact /></div>
 
       <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "1.5rem", marginBottom: "1.5rem" }}>
         {/* MRR per client bar chart */}
@@ -74,15 +72,8 @@ export default function AnalyticsPage() {
               Añade clientes con estado "Cobrado" en Sales para ver datos aquí.
             </div>
           ) : (
-            <div style={{ display: "flex", alignItems: "flex-end", gap: "16px", height: "180px" }}>
-              {paidSales.map((s, i) => (
-                <div key={s.id} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "8px", justifyContent: "flex-end", height: "100%" }}>
-                  <span style={{ fontSize: "10px", fontWeight: 600, color: "var(--text-secondary)" }}>€{s.monthly}</span>
-                  <div style={{ width: "100%", height: `${(Number(s.monthly) / maxMRR) * 140}px`, background: i === paidSales.length - 1 ? "#111827" : "#f3f4f6", borderRadius: "6px 6px 0 0", minHeight: "8px" }} />
-                  <span style={{ fontSize: "10px", fontWeight: 600, color: "var(--text-muted)", textAlign: "center", maxWidth: "70px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.client}</span>
-                </div>
-              ))}
-            </div>
+            <ColumnChart data={paidSales.map((s) => ({ key: String(s.id), label: s.client, value: Number(s.monthly), tip: `${s.client} · €${s.monthly}/mes` }))}
+              highlight={String(paidSales[paidSales.length - 1]?.id)} format={(n) => `€${n.toLocaleString("es-ES")}`} height={210} />
           )}
         </div>
 
@@ -118,14 +109,7 @@ export default function AnalyticsPage() {
         <p style={{ fontSize: "0.8125rem", color: "var(--text-secondary)", marginBottom: "2rem" }}>
           Semilla actual: {fibSeed} cliente{fibSeed !== 1 ? "s" : ""} activo{fibSeed !== 1 ? "s" : ""}
         </p>
-        <div style={{ display: "flex", alignItems: "flex-end", gap: "10px", height: "160px" }}>
-          {fib.map((val, i) => (
-            <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "8px", justifyContent: "flex-end", height: "100%" }}>
-              <div style={{ width: "100%", height: `${(val / maxFib) * 130}px`, background: i === fib.length - 1 ? "#111827" : "#f3f4f6", borderRadius: "6px 6px 0 0", minHeight: "4px" }} />
-              <span style={{ fontSize: "10px", fontWeight: 600, color: "var(--text-muted)" }}>{val}</span>
-            </div>
-          ))}
-        </div>
+        <ColumnChart data={fib.map((v, i) => ({ key: String(i), label: `M${i + 1}`, value: v, tip: `Paso ${i + 1} · ${v} clientes` }))} highlight={String(fib.length - 1)} height={200} />
       </div>
     </div>
   );

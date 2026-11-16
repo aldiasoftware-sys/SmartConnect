@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import Portal from "@/components/Portal";
+import { guardarRespuesta, useAsistencia } from "@/lib/asistencia";
+import { TEAM } from "@/lib/team";
 import {
   Calendar as CalendarIcon,
   Clock,
@@ -74,6 +76,7 @@ function cuandoEs(d: Date, now: Date) {
 }
 
 export default function ReunionesPage() {
+  const asis = useAsistencia();
   const [reuniones, setReuniones] = useState<Reunion[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -170,11 +173,15 @@ export default function ReunionesPage() {
 
       if (error) alert("Error al actualizar");
     } else {
-      const { error } = await supabase
+      const { data: nueva, error } = await supabase
         .from("reuniones")
-        .insert([reunionData]);
+        .insert([reunionData])
+        .select("id")
+        .single();
 
       if (error) alert("Error al crear");
+      // quien la crea va (no le sale el aviso); a los demás les sale el punto rojo hasta que contesten
+      else if (nueva?.id && asis.me) await guardarRespuesta(nueva.id, asis.me.id, "si");
     }
     setSaving(false);
 
@@ -292,6 +299,11 @@ export default function ReunionesPage() {
   const dayOpenDate = dayOpen ? new Date(`${dayOpen}T00:00:00`) : null;
   const dayOpenList = dayOpen ? byDay.get(dayOpen) || [] : [];
 
+  // sin contestar por mí (Asistiré / No asistiré) → en rojo
+  const pend = (r: Reunion) => !!r.id && asis.pendientes.some((x) => x.id === r.id);
+  // mi respuesta: verde si voy, gris si no voy
+  const mia = (r: Reunion) => (r.id && asis.me ? asis.asis[r.id]?.[asis.me.id] : undefined);
+  const estado = (r: Reunion) => (pend(r) ? "pend" : mia(r) === "si" ? "voy" : mia(r) === "no" ? "novoy" : "");
   const pill = (r: Reunion) => {
     const d = new Date(r.fecha_reunion);
     const o = origenDe(r.origen);
@@ -299,8 +311,8 @@ export default function ReunionesPage() {
       <button
         key={r.id}
         type="button"
-        className={`reu-ev ${o.cls} ${+d < +now ? "done" : ""}`}
-        title={`${hora(d)} · ${r.nombre_reunion}${r.duracion ? ` · ${r.duracion}` : ""} · ${o.label}`}
+        className={`reu-ev ${o.cls} ${+d < +now ? "done" : ""} ${estado(r)}`}
+        title={`${pend(r) ? "Sin contestar · " : ""}${hora(d)} · ${r.nombre_reunion}${r.duracion ? ` · ${r.duracion}` : ""} · ${o.label}`}
         onClick={(e) => { e.stopPropagation(); openEditDrawer(r); }}
       >
         <i />
@@ -314,7 +326,7 @@ export default function ReunionesPage() {
     const d = new Date(r.fecha_reunion);
     const o = origenDe(r.origen);
     return (
-      <button key={r.id} type="button" className="reu-item" onClick={() => openEditDrawer(r)}>
+      <button key={r.id} type="button" className={`reu-item ${estado(r)}`} onClick={() => openEditDrawer(r)}>
         {showDay ? (
           <span className={`reu-date ${sameDay(d, now) ? "on" : ""}`}>
             <small>{WEEKDAY_SHORT[d.getDay()]}</small>
@@ -340,6 +352,22 @@ export default function ReunionesPage() {
 
   return (
     <div className="page-wrapper animate-in reu">
+      {asis.pendientes.length > 0 && (
+        <div className="rsvp">
+          <div className="rsvp-head"><span className="rsvp-dot" /> <b>{asis.pendientes.length === 1 ? "Tienes una reunión sin contestar" : `Tienes ${asis.pendientes.length} reuniones sin contestar`}</b></div>
+          {asis.pendientes.map((r) => {
+            const d = new Date(r.fecha_reunion);
+            return (
+              <div key={r.id} className="rsvp-row">
+                <div className="mx-grow"><b className="mx-trunc">{r.nombre_reunion}</b>
+                  <small>{d.toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "short" })} · {d.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}{r.duracion ? ` · ${r.duracion}` : ""}</small></div>
+                <button className="rsvp-yes" onClick={() => asis.responder(r.id, "si")}>Asistiré</button>
+                <button className="rsvp-no" onClick={() => asis.responder(r.id, "no")}>No asistiré</button>
+              </div>
+            );
+          })}
+        </div>
+      )}
       <div className="mx-head reu-head">
         <div>
           <div className="eyebrow">Reuniones</div>
@@ -646,6 +674,16 @@ export default function ReunionesPage() {
                     rows={3}
                   />
                 </div>
+                {currentReunion?.id && asis.me && (
+                  <div className="form-group">
+                    <label>¿Asistirás?</label>
+                    <div className="rsvp-pick">
+                      <button type="button" className={mia(currentReunion) === "si" ? "on si" : ""} onClick={() => asis.responder(currentReunion.id!, "si")}>Asistiré</button>
+                      <button type="button" className={mia(currentReunion) === "no" ? "on no" : ""} onClick={() => asis.responder(currentReunion.id!, "no")}>No asistiré</button>
+                    </div>
+                    <small className="rsvp-team">{TEAM.map((m) => { const v = asis.asis[currentReunion.id!]?.[m.id]; return `${m.name}: ${v === "si" ? "va" : v === "no" ? "no va" : "sin contestar"}`; }).join(" · ")}</small>
+                  </div>
+                )}
               </div>
 
               <div className="dialog-foot">
@@ -870,6 +908,15 @@ export default function ReunionesPage() {
         .reu-ev.otro { --c: var(--text-secondary); --bg: var(--bg-surface); }
         .reu-ev:hover { background: var(--c); color: #fff; }
         .reu-ev.done { opacity: 0.62; }
+        .reu-ev.pend { --c: #e5221b; --bg: #ffe9e7; box-shadow: inset 0 0 0 1.5px #ff3b30; font-weight: 600; }
+        .reu-ev.pend i { background: #ff3b30; animation: navAlert 1.8s infinite; }
+        .reu-ev.voy { --c: #0b8a59; --bg: #e3f7ee; box-shadow: inset 0 0 0 1.5px #12a26b; }
+        .reu-ev.voy i { background: #12a26b; }
+        .reu-ev.novoy { --c: var(--text-muted); --bg: var(--bg-surface); opacity: .75; }
+        .reu-ev.novoy i { background: #b4bac6; }
+        .reu-item.voy { box-shadow: inset 3px 0 0 #12a26b; }
+        .reu-item.novoy { opacity: .7; }
+        .reu-item.pend { box-shadow: inset 3px 0 0 #ff3b30; background: #fff6f5; }
         .reu-ev i { width: 6px; height: 6px; border-radius: 99px; background: currentColor; flex-shrink: 0; }
         .reu-ev time { font-weight: 500; font-variant-numeric: tabular-nums; opacity: 0.8; flex-shrink: 0; }
         .reu-ev span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

@@ -105,7 +105,7 @@ export default function WeeklyCheckin() {
                 <div className="flex gap-2" style={{ marginBottom: "0.75rem", flexWrap: "wrap" }}>
                   <span className={`chip ${prevStats.tiktok >= TARGETS.tiktok ? "chip-ok" : "chip-bad"}`}>TikTok {prevStats.tiktok}/{TARGETS.tiktok}</span>
                   <span className={`chip ${prevStats.instagram >= TARGETS.instagram ? "chip-ok" : "chip-bad"}`}>Instagram {prevStats.instagram}/{TARGETS.instagram}</span>
-                  <span className={`chip ${prevStats.linkedin >= TARGETS.linkedin ? "chip-ok" : "chip-bad"}`}>LinkedIn {prevStats.linkedin}/{TARGETS.linkedin}</span>
+                  <span className={`chip ${prevStats.youtube >= TARGETS.youtube ? "chip-ok" : "chip-bad"}`}>YouTube {prevStats.youtube}/{TARGETS.youtube}</span>
                 </div>
                 <p className="section-sub" style={{ padding: 0 }}>Todo lo que estaba en el calendario cuenta como publicado: ya no hace falta marcarlo.</p>
               </>

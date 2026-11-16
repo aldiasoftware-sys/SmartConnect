@@ -11,7 +11,8 @@ import { autoNotifyDiscord, wantsDiscordAuto } from "@/lib/discordAuto";
 
 const KINDS_BY_PLATFORM: Record<string, string[]> = {
   tiktok: ["video", "noticia", "automatizacion", "tutorial", "caso"],
-  linkedin: ["caso", "post", "pregunta"],
+  instagram: ["video", "noticia", "automatizacion", "tutorial", "caso"],
+  youtube: ["video", "noticia", "automatizacion", "tutorial", "caso"],
   newsletter: ["newsletter"],
   directo: ["directo"],
   telegram: ["aviso"],
@@ -62,8 +63,8 @@ export default function PostEditor({ post, onClose, onSaved }: { post: Post; onC
               <input autoFocus value={p.title} onChange={(e) => set("title", e.target.value)} placeholder="Qué cuenta esta pieza, en una frase" /></div>
             <div className="flex gap-4">
               <div className="form-group flex-1"><label>Red / canal</label>
-                <select value={p.platform} onChange={(e) => setP({ ...p, platform: e.target.value, kind: KINDS_BY_PLATFORM[e.target.value][0] })}>
-                  {Object.entries(PLATFORMS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                <select value={p.platform} onChange={(e) => setP({ ...p, platform: e.target.value, kind: (KINDS_BY_PLATFORM[e.target.value] || ["video"])[0] })}>
+                  {Object.entries(PLATFORMS).filter(([k]) => k !== "linkedin" || p.platform === "linkedin").map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
                 </select></div>
               <div className="form-group flex-1"><label>Tipo</label>
                 <select value={p.kind || ""} onChange={(e) => set("kind", e.target.value)}>

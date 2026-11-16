@@ -1,5 +1,7 @@
 "use client";
 
+import { AreaChart, Ring } from "@/components/charts";
+
 import { useEffect, useMemo, useState } from "react";
 import { Plus, Undo2, CalendarPlus, Users, TrendingUp, CalendarRange, Trophy, HardDrive, X, Trash2, RefreshCw } from "lucide-react";
 import { SKOOL_AT, fmt, pct, shortDate, today, weekStart } from "@/lib/social";
@@ -35,17 +37,21 @@ function Delta({ now, before, first }: { now: number; before: number; first?: st
   return <span style={{ color, fontWeight: 600 }}>{diff > 0 ? "+" : ""}{diff} vs. anterior</span>;
 }
 
-function Bars({ data, highlight }: { data: { label: string; value: number; key: string }[]; highlight: string }) {
-  const max = Math.max(1, ...data.map((d) => d.value));
+/** Por semana: curva suave con área (también se lee bien con pocas semanas). */
+function Weekly({ data, highlight }: { data: { label: string; value: number; key: string }[]; highlight: string }) {
+  if (data.length < 2) return <Monthly data={data} highlight={highlight} />;
+  return <AreaChart labels={data.map((d) => d.label)} series={[{ id: "n", label: "Personas nuevas", color: "#5865F2", values: data.map((d) => d.value) }]} height={230}
+    tipLabel={(i) => `Semana del ${data[i].label}${data[i].key === highlight ? " (esta)" : ""}`} />;
+}
+/** Por mes: con un solo mes, anillo hacia las 30 personas de Skool; con más, curva. */
+function Monthly({ data, highlight }: { data: { label: string; value: number; key: string }[]; highlight: string }) {
+  const nonEmpty = data.filter((d) => d.value > 0);
+  if (nonEmpty.length >= 2) return <AreaChart labels={data.map((d) => d.label)} series={[{ id: "m", label: "Personas nuevas", color: "#5865F2", values: data.map((d) => d.value) }]} height={230} />;
+  const cur = data.find((d) => d.key === highlight)?.value ?? 0;
   return (
-    <div className="cm-bars" role="img" aria-label={data.map((d) => `${d.label}: ${d.value}`).join(", ")}>
-      {data.map((d) => (
-        <div key={d.key} className="cm-bar-col" title={`${d.label}: ${d.value}`}>
-          <span className="cm-bar-val">{d.value || ""}</span>
-          <div className="cm-bar-track"><div className={`cm-bar ${d.key === highlight ? "now" : ""}`} style={{ height: `${(d.value / max) * 100}%` }} /></div>
-          <span className="cm-bar-lbl">{d.label}</span>
-        </div>
-      ))}
+    <div className="cm-month">
+      <Ring pct={(cur / SKOOL_AT) * 100} size={150} color="#5865F2" label={`${cur} de ${SKOOL_AT}`} />
+      <div><b>{cur}</b><span>este mes</span><small>Meta: {SKOOL_AT} para abrir Skool</small></div>
     </div>
   );
 }
@@ -240,12 +246,12 @@ export default function ComunidadPage() {
         <div className="card">
           <h3 className="section-title">Por semana</h3>
           <p className="section-sub">Personas nuevas cada semana (lunes a domingo), últimas 12.</p>
-          <Bars data={weeks} highlight={ws} />
+          <Weekly data={weeks} highlight={ws} />
         </div>
         <div className="card">
           <h3 className="section-title">Por mes</h3>
           <p className="section-sub">Últimos 6 meses.</p>
-          <Bars data={months} highlight={mk} />
+          <Monthly data={months} highlight={mk} />
         </div>
       </div>
 

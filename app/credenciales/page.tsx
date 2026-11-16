@@ -6,6 +6,37 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/AuthContext";
 import Portal from "@/components/Portal";
 import { getSetting, setSetting } from "@/lib/store";
+import { BrandLogo } from "@/components/AccountIcon";
+
+/** Carpetas automáticas por servicio, según el nombre de la credencial (el orden manda: la primera que encaja). */
+const FOLDERS: { name: string; re: RegExp; color: string; logo?: string }[] = [
+  { name: "TikTok", re: /tik\s?tok/i, color: "#000000", logo: "tiktok" },
+  { name: "Instagram", re: /instagram|\big\b/i, color: "#e1306c", logo: "instagram" },
+  { name: "YouTube", re: /youtube|\byt\b/i, color: "#ff0000", logo: "youtube" },
+  { name: "Meta / Facebook", re: /facebook|\bmeta\b|whatsapp/i, color: "#1877f2" },
+  { name: "n8n", re: /n8n/i, color: "#ea4b71" },
+  { name: "IA", re: /openai|chatgpt|anthropic|claude|gemini|eleven\s?labs|mistral|groq|perplexity|midjourney|replicate|hugging/i, color: "#d97757" },
+  { name: "Google", re: /google|gmail|gcp|firebase|drive/i, color: "#4285f4" },
+  { name: "Microsoft", re: /microsoft|azure|outlook|office|365|teams|power\s?(bi|apps|automate|platform)|dataverse/i, color: "#0078d4" },
+  { name: "Discord", re: /discord/i, color: "#5865f2" },
+  { name: "Supabase y bases de datos", re: /supabase|postgres|mongo|mysql|airtable/i, color: "#1f9d6c" },
+  { name: "Código y despliegue", re: /github|gitlab|vercel|cloudflare|netlify|docker|aws|amazon|hostinger|ionos|godaddy|dominio|hosting|vps/i, color: "#24292f" },
+  { name: "Pagos", re: /stripe|paypal|revolut|bizum|banco|bank/i, color: "#635bff" },
+  { name: "Correo y newsletter", re: /resend|mailchimp|brevo|sendgrid|correo|mail/i, color: "#0e0e0e" },
+  { name: "Diseño", re: /canva|figma|adobe|capcut/i, color: "#00a5ad" },
+  { name: "LinkedIn", re: /linkedin/i, color: "#0a66c2" },
+];
+const folderOf = (c: { name: string; user?: string }) => FOLDERS.find((f) => f.re.test(c.name || "")) || FOLDERS.find((f) => f.re.test(c.user || "")) || null;
+function byFolder<T extends { name: string; user?: string }>(items: T[]) {
+  const out: { name: string; color: string; logo?: string; items: T[] }[] = [];
+  for (const c of items) {
+    const f = folderOf(c); const name = f?.name || "Otros";
+    let g = out.find((x) => x.name === name);
+    if (!g) { g = { name, color: f?.color || "#94a3b8", logo: f?.logo, items: [] }; out.push(g); }
+    g.items.push(c);
+  }
+  return out.sort((a, b) => (a.name === "Otros" ? 1 : b.name === "Otros" ? -1 : FOLDERS.findIndex((f) => f.name === a.name) - FOLDERS.findIndex((f) => f.name === b.name)));
+}
 
 interface Credential {
   id: string;
@@ -396,7 +427,19 @@ export default function CredentialsPage() {
                 <h3>{g.name || "Sin bóveda"}</h3>
                 <span className="cr-vault-n">{g.items.length}</span>
               </header>
-              <div className="cr-grid">{g.items.map(renderCard)}</div>
+              <div className="cr-folders">
+                {byFolder(g.items).map((f) => (
+                  <details key={f.name} className="cr-folder" open={!!query.trim() || g.items.length <= 6}>
+                    <summary>
+                      {f.logo ? <BrandLogo platform={f.logo} size={26} /> : <span className="cr-folder-ico" style={{ background: f.color }}>{f.name === "Otros" ? "…" : f.name.slice(0, 2)}</span>}
+                      <b>{f.name}</b>
+                      <span className="cr-vault-n">{f.items.length}</span>
+                      <i className="cr-folder-chev" aria-hidden>›</i>
+                    </summary>
+                    <div className="cr-grid">{f.items.map(renderCard)}</div>
+                  </details>
+                ))}
+              </div>
             </section>
           ))}
         </div>
@@ -529,6 +572,16 @@ export default function CredentialsPage() {
         .cr-swatches { display: flex; flex-wrap: wrap; gap: 8px; }
         .cr-swatch { width: 30px; height: 30px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 0 1px var(--border-color); cursor: pointer; }
         .cr-swatch.on { box-shadow: 0 0 0 2px var(--ink); }
+        .cr-folders { display: flex; flex-direction: column; gap: 0.5rem; }
+        .cr-folder { border: 1px solid var(--border-color); border-radius: 16px; background: #fff; overflow: hidden; }
+        .cr-folder > summary { list-style: none; display: flex; align-items: center; gap: 10px; padding: 0.625rem 0.875rem; cursor: pointer; user-select: none; transition: background .15s; }
+        .cr-folder > summary::-webkit-details-marker { display: none; }
+        .cr-folder > summary:hover { background: #fafbfd; }
+        .cr-folder > summary b { font-size: 0.875rem; font-weight: 600; }
+        .cr-folder-ico { width: 26px; height: 26px; border-radius: 8px; color: #fff; font-size: 0.625rem; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; text-transform: uppercase; flex-shrink: 0; }
+        .cr-folder-chev { margin-left: auto; font-style: normal; color: var(--text-muted); font-size: 1.1rem; transition: transform .2s; }
+        .cr-folder[open] .cr-folder-chev { transform: rotate(90deg); }
+        .cr-folder[open] > .cr-grid { padding: 0.25rem 0.875rem 0.875rem; }
         .cr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(268px, 100%), 1fr)); gap: 0.875rem; }
         .cr-card { padding: 0.875rem; border-radius: 18px; display: flex; flex-direction: column; gap: 0.75rem; }
         .cr-card:hover { transform: translateY(-1px); }

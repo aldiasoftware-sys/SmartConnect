@@ -31,23 +31,19 @@ export default function AccountsWeek({ week, posts, snapshots, accounts = ACCOUN
         const hist = contentByWeek(posts.filter(mine), weeks).filter((p) => p.reviewed && p.planned > 0).slice(-8);
         const histPct = pct(hist.reduce((x, p) => x + p.published, 0), hist.reduce((x, p) => x + p.planned, 0));
         return (
-          <div key={a.id} className="card">
+          <div key={a.id} className={`card ${["youtube", "tiktok", "instagram"].includes(a.platform) ? "acc-card" : ""}`} title={["youtube", "tiktok", "instagram"].includes(a.platform) ? "Abrir el detalle en una pestaña nueva" : undefined}
+            onClick={() => { if (["youtube", "tiktok", "instagram"].includes(a.platform)) window.open(`/red?p=${a.platform}`, "_blank"); }}>
             <div className="flex items-center justify-between" style={{ marginBottom: "1.25rem" }}>
               <div className="flex items-center gap-3">
                 <AccountIcon account={a} size={40} />
-                <div><b style={{ fontSize: "0.9375rem" }}>{a.name}</b><div className="section-sub">{a.owner}</div></div>
+                <div><b style={{ fontSize: "0.9375rem" }}>{a.name}</b><div className="section-sub">{a.owner.replace(" (conjunta)", "")} <span className="acc-open">· ver detalle ↗</span></div></div>
               </div>
               <Sparkline values={s.slice(-12)} color={a.color} />
             </div>
             <div className="flex items-end justify-between">
               <div>
-                <button className="kpi-value acc-num" style={{ fontSize: "1.875rem", marginBottom: 6 }} onClick={onUpdate} title="Seguidores del último check-in · pulsa para actualizarlos">{now === null || !has ? "—" : fmt(now)}</button>
+                <button className="kpi-value acc-num" style={{ fontSize: "1.875rem", marginBottom: 6 }} onClick={(e) => { e.stopPropagation(); onUpdate?.(); }} title="Seguidores del último check-in · pulsa para actualizarlos">{now === null || !has ? "—" : fmt(now)}</button>
                 <div className="kpi-sub"><Delta v={now !== null && before !== null ? now - before : null} /> esta semana</div>
-              </div>
-              <div style={{ textAlign: "right" }}>
-                <div className="ci-mini">En el calendario</div>
-                <div style={{ fontWeight: 500, fontSize: "1.125rem" }}>{plan.length ? `${plan.filter((p) => isPublished(p)).length}/${plan.length} ${a.platform === "linkedin" ? "posts" : "vídeos"}` : "—"}</div>
-                <div className="section-sub">{hist.length ? `${histPct}% cumplido` : "sin historial"}</div>
               </div>
             </div>
           </div>

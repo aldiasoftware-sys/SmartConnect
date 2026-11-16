@@ -1,5 +1,7 @@
 "use client";
 
+import { AreaChart, ColumnChart } from "@/components/charts";
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle, BarChart3, CheckCircle2, Clock, ExternalLink, HardDrive, Megaphone, MessageSquare, Play, RefreshCw,
@@ -121,14 +123,8 @@ function Resumen({ stats }: { stats: DiscordStats | null }) {
         </div>
         <div className="card">
           <h3 style={{ fontWeight: 600, marginBottom: 12 }}>Mensajes por día</h3>
-          <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 170 }}>
-            {activity.byDay.map((d) => (
-              <div key={d.day} style={{ flex: 1, textAlign: "center" }} title={`${d.messages} mensajes`}>
-                <div style={{ height: 140, display: "flex", alignItems: "flex-end" }}><div style={{ width: "100%", height: `${Math.max(3, (d.messages / maxDay) * 100)}%`, background: d.day === today() ? "#c82828" : "var(--ink)", borderRadius: 6, opacity: d.messages ? 1 : 0.15 }} /></div>
-                <div className="text-xs text-secondary" style={{ marginTop: 6 }}>{shortDate(d.day).split(" ")[0]}</div>
-              </div>
-            ))}
-          </div>
+          <ColumnChart data={activity.byDay.map((d) => ({ key: d.day, label: shortDate(d.day).split(" ")[0], value: d.messages, tip: `${shortDate(d.day)} · ${d.messages} mensajes` }))}
+            highlight={today()} color="#5865F2" height={190} />
         </div>
       </div>
 
@@ -160,21 +156,8 @@ function Resumen({ stats }: { stats: DiscordStats | null }) {
 
 function MembersChart({ history, goal }: { history: DiscordStats["history"]; goal: number }) {
   if (history.length < 2) return <div className="empty" style={{ height: 180, display: "grid", placeItems: "center" }}><p className="text-sm text-secondary">La gráfica se irá llenando con una foto cada noche.</p></div>;
-  const W = 700, H = 200, L = 36, R = 10, T = 10, B = 24;
-  const max = Math.max(goal, ...history.map((h) => h.members)) * 1.1;
-  const x = (i: number) => L + (i * (W - L - R)) / (history.length - 1);
-  const y = (v: number) => T + (1 - v / max) * (H - T - B);
-  const pts = history.map((h, i) => `${x(i)},${y(h.members)}`).join(" ");
-  const step = Math.max(1, Math.ceil(history.length / 8));
-  return (
-    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto" }}>
-      <line x1={L} x2={W - R} y1={y(goal)} y2={y(goal)} stroke="#c82828" strokeDasharray="4 4" strokeWidth={1.5} />
-      <text x={W - R} y={y(goal) - 5} textAnchor="end" fontSize="11" fill="#c82828">meta {goal}</text>
-      <polygon points={`${L},${H - B} ${pts} ${x(history.length - 1)},${H - B}`} fill="rgba(11,19,36,0.07)" />
-      <polyline points={pts} fill="none" stroke="var(--ink)" strokeWidth={2.5} strokeLinejoin="round" />
-      {history.map((h, i) => i % step === 0 || i === history.length - 1 ? <text key={h.day} x={x(i)} y={H - 6} textAnchor="middle" fontSize="11" fill="#8b95aa">{shortDate(h.day)}</text> : null)}
-    </svg>
-  );
+  return <AreaChart labels={history.map((h) => shortDate(h.day))} series={[{ id: "m", label: "Miembros", color: "#5865F2", values: history.map((h) => h.members) }]}
+    goal={{ value: goal, label: `meta ${goal}` }} height={220} />;
 }
 
 // ===================== AVISOS DE REDES =====================

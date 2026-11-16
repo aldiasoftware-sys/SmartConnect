@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, Plus, Wand2, HardDrive, AlertTriangle, Pencil } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Wand2, HardDrive, Pencil } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useSocial } from "@/lib/SocialContext";
-import { DIAS, KINDS, PLATFORMS, Post, STATUSES, TARGETS, addDays, contentByWeek, fromISO, isPublished, shortDate, shownStatus, statusOf, today, weekLabel, weekNumber, weekStart } from "@/lib/social";
+import { DIAS, KINDS, PAUSED_PLATFORMS, PLATFORMS, Post, STATUSES, TARGETS, addDays, contentByWeek, fromISO, isPublished, shortDate, shownStatus, statusOf, today, weekLabel, weekNumber, weekStart } from "@/lib/social";
 import { loadWeekTemplate } from "@/lib/content";
 import PostEditor from "@/components/PostEditor";
 import AccountsWeek from "@/components/AccountsWeek";
@@ -21,7 +21,8 @@ export default function ContenidoPage() {
   // lo de la cuenta conjunta (sin dueño) sale en los dos.
   const people: TeamMember[] = me ? [me, ...TEAM.filter((m) => m.id !== me.id)] : TEAM;
   const shown = scope === "yo" && me ? [me] : people;
-  const posts = allPosts;
+  // LinkedIn en pausa: sus piezas no salen en el calendario (siguen guardadas)
+  const posts = allPosts.filter((p) => !PAUSED_PLATFORMS.includes(p.platform));
   // Millán ve en el suyo solo lo de Archivos › Millán; lo de la cuenta conjunta sale en el de Guille
   const of = (m: TeamMember) => (list: Post[]) => list.filter((p) => ownedBy(p.owner, m) || (!m.soloLoSuyo && isShared(p.owner)));
   const [week, setWeek] = useState(weekStart());
@@ -36,7 +37,7 @@ export default function ContenidoPage() {
   const days = Array.from({ length: 7 }, (_, i) => addDays(week, i));
   const weekPosts = posts.filter((p) => p.publish_date && p.publish_date >= week && p.publish_date <= days[6]);
   // regla: 1 publicación al día por red y persona como máximo
-  const crowded = people.flatMap((m) => days.flatMap((d) => ["tiktok", "instagram", "linkedin"].filter((pl) => of(m)(weekPosts).filter((p) => p.publish_date === d && p.platform === pl && !(isShared(p.owner) && p.archivo)).length > 1).map((pl) => `${DIAS[days.indexOf(d)]} de ${m.name} (${PLATFORMS[pl].label})`)));
+  // (sin aviso de «más de una al día»: pidió quitarlo el 16-11)
 
   async function template() {
     setBusy(true); await loadWeekTemplate(week, posts); await refresh(); setBusy(false);
@@ -106,7 +107,6 @@ export default function ContenidoPage() {
           <button className="icon-btn" onClick={() => setWeek(addDays(week, 7))} aria-label="Semana siguiente"><ChevronRight /></button>
           {week !== weekStart() && <button className="btn-secondary" style={{ padding: "0.45rem 0.8rem" }} onClick={() => setWeek(weekStart())}>Hoy</button>}
         </div>
-        {crowded.length > 0 && <span className="chip chip-bad"><AlertTriangle style={{ width: 13, height: 13 }} /> Más de una publicación el {crowded.join(", ")}: máximo una al día por red</span>}
       </div>
 
       {/* crecimiento de cada cuenta en esta semana (seguidores del check-in) y lo publicado del calendario */}
@@ -124,7 +124,7 @@ export default function ContenidoPage() {
               </div>
               <span className="mx-pill">TikTok {n("tiktok")}</span>
               <span className="mx-pill">Instagram {n("instagram")}</span>
-              <span className="mx-pill">LinkedIn {n("linkedin")}</span>
+              <span className="mx-pill">YouTube {n("youtube")}</span>
             </div>
             <div className="week-board">
               {days.map((d, i) => (
@@ -137,7 +137,7 @@ export default function ContenidoPage() {
                     </div>
                   )}
                   {dayCards(mine.filter((p) => p.publish_date === d))}
-                  <button className="add-slot" onClick={() => setEditing(blank(d, i === 4 ? "linkedin" : "tiktok", m.owner))}>+ Añadir</button>
+                  <button className="add-slot" onClick={() => setEditing(blank(d, "tiktok", m.owner))}>+ Añadir</button>
                 </div>
               ))}
             </div>

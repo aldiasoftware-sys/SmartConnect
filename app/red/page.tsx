@@ -1,0 +1,256 @@
+"use client";
+
+// Detalle de una red (/red?p=youtube|tiktok|instagram): estilo «bolsa» con los colores de cada app.
+// YouTube: datos reales del canal (app_settings «youtube_stats», que sube el PC cada 30 min con aldia-youtube) y contador en
+// directo con la clave pública de «youtube_live». TikTok e Instagram: seguidores del check-in semanal y lo publicado del calendario.
+import { useEffect, useMemo, useState } from "react";
+import { ArrowDownRight, ArrowUpRight, CalendarClock, Clock, Eye, Flame, Heart, MessageCircle, Minus, Play, Radio, Repeat2, Target, Trophy, UserPlus, Users } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { useSocial } from "@/lib/SocialContext";
+import { ACCOUNTS, TARGETS, addDays, fmt, isPublished, shortDate, today, weekStart } from "@/lib/social";
+import { BrandLogo } from "@/components/AccountIcon";
+import { AreaChart, ColumnChart, CountUp, Ring, Sparkline } from "@/components/charts";
+
+type P = "youtube" | "tiktok" | "instagram";
+const THEME: Record<P, { name: string; handle: string; accent: string; accent2: string; cls: string; unit: string }> = {
+  youtube: { name: "YouTube", handle: "Shorts · ALDIA", accent: "#FF0033", accent2: "#FF6B6B", cls: "rd-yt", unit: "suscriptores" },
+  tiktok: { name: "TikTok", handle: "@aldiaproject", accent: "#FE2C55", accent2: "#25F4EE", cls: "rd-tt", unit: "seguidores" },
+  instagram: { name: "Instagram", handle: "@aldiaproject", accent: "#E1306C", accent2: "#F77737", cls: "rd-ig", unit: "seguidores" },
+};
+const RANGES = [{ id: 7, l: "7D" }, { id: 30, l: "1M" }, { id: 90, l: "3M" }, { id: 3650, l: "Todo" }];
+
+type YTVideo = { id: string; titulo: string; publicado?: string; programado?: string | null; privacidad: string; miniatura?: string; vistas: number; likes: number; comentarios: number; duracion?: string };
+type YTStats = {
+  canal: { id: string; nombre: string; suscriptores: number; vistas: number; videos: number };
+  videos: YTVideo[]; actualizado: string;
+  dias: { day: string; views: number; estimatedMinutesWatched: number; subscribersGained: number; subscribersLost: number; likes: number; comments: number; shares: number }[];
+  por_video: Record<string, { views: number; averageViewDuration: number; averageViewPercentage: number; subscribersGained: number; likes: number; shares: number }>;
+  historial: Record<string, { suscriptores: number; vistas: number }>;
+};
+
+const dayLbl = (d: string) => shortDate(d);
+const ago = (iso?: string) => { if (!iso) return ""; const m = Math.round((Date.now() - new Date(iso).getTime()) / 60000); return m < 1 ? "ahora" : m < 60 ? `hace ${m} min` : m < 1440 ? `hace ${Math.round(m / 60)} h` : `hace ${Math.round(m / 1440)} d`; };
+const secs = (iso?: string) => { const m = iso?.match(/PT(?:(\d+)M)?(?:(\d+)S)?/); return m ? Number(m[1] || 0) * 60 + Number(m[2] || 0) : 0; };
+
+function Change({ now, before, unit = "" }: { now: number | null; before: number | null; unit?: string }) {
+  if (now === null || before === null) return <span className="rd-chg flat"><Minus /> sin datos aún</span>;
+  const d = now - before, pct = before ? (d / before) * 100 : d ? 100 : 0;
+  const cls = d > 0 ? "up" : d < 0 ? "down" : "flat";
+  const I = d > 0 ? ArrowUpRight : d < 0 ? ArrowDownRight : Minus;
+  return <span className={`rd-chg ${cls}`}><I /> {d > 0 ? "+" : ""}{fmt(d)}{unit} <em>({pct > 0 ? "+" : ""}{pct.toFixed(1).replace(".", ",")} %)</em></span>;
+}
+
+function Tile({ icon: I, label, value, sub, spark, color }: { icon: any; label: string; value: React.ReactNode; sub?: React.ReactNode; spark?: number[]; color: string }) {
+  return (
+    <div className="rd-tile">
+      <div className="rd-tile-top"><span className="rd-tile-ico" style={{ color }}><I /></span><span>{label}</span></div>
+      <div className="rd-tile-val">{value}</div>
+      <div className="rd-tile-foot"><small>{sub}</small>{spark && spark.length > 1 && <Sparkline values={spark} color={color} width={84} height={26} />}</div>
+    </div>
+  );
+}
+
+export default function RedPage() {
+  const [p, setP] = useState<P>("youtube");
+  useEffect(() => { const q = new URLSearchParams(window.location.search).get("p") as P; if (q && q in THEME) setP(q); }, []);
+  const T = THEME[p];
+  const { posts, snapshots } = useSocial();
+  const [range, setRange] = useState(30);
+  const [yt, setYt] = useState<YTStats | null>(null);
+  const [live, setLive] = useState<{ channelId: string; apiKey: string } | null>(null);
+  const [now, setNow] = useState<{ subs: number; views: number; videos: number; at: number } | null>(null);
+  const [first, setFirst] = useState<number | null>(null);
+  const [liveVid, setLiveVid] = useState<Record<string, { v: number; l: number; c: number }>>({});
+  const [flash, setFlash] = useState<string>("");
+
+  useEffect(() => { document.title = `${T.name} · Aldia Smart Connect`; }, [T.name]);
+
+  // datos del PC (cada 30 min) — y se recargan cada 5 min
+  useEffect(() => {
+    if (p !== "youtube") return;
+    const load = async () => {
+      const { data } = await supabase.from("app_settings").select("key,value").in("key", ["youtube_stats", "youtube_live"]);
+      for (const r of data || []) { if (r.key === "youtube_stats") setYt(r.value as YTStats); if (r.key === "youtube_live") setLive(r.value as any); }
+    };
+    load(); const t = setInterval(load, 300000); return () => clearInterval(t);
+  }, [p]);
+
+  // en directo: suscriptores y vistas cada 10 s; vistas de cada vídeo cada minuto
+  useEffect(() => {
+    if (p !== "youtube" || !live?.apiKey) return;
+    let stop = false;
+    const tick = async () => {
+      try {
+        const r = await fetch(`https://www.googleapis.com/youtube/v3/channels?part=statistics&id=${live.channelId}&key=${live.apiKey}`).then((x) => x.json());
+        const s = r.items?.[0]?.statistics; if (!s || stop) return;
+        const n = { subs: Number(s.subscriberCount), views: Number(s.viewCount), videos: Number(s.videoCount), at: Date.now() };
+        setNow((prev) => {
+          if (prev && n.subs > prev.subs) { setFlash(`+${n.subs - prev.subs} ${n.subs - prev.subs === 1 ? "nuevo suscriptor" : "nuevos suscriptores"}`); setTimeout(() => setFlash(""), 4000); }
+          return n;
+        });
+        setFirst((f) => (f === null ? n.subs : f));
+      } catch { /* sin red: se reintenta */ }
+    };
+    tick(); const t = setInterval(tick, 10000); return () => { stop = true; clearInterval(t); };
+  }, [p, live]);
+  useEffect(() => {
+    if (p !== "youtube" || !live?.apiKey || !yt?.videos?.length) return;
+    const ids = yt.videos.slice(0, 50).map((v) => v.id).join(",");
+    const tick = async () => {
+      try {
+        const r = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=statistics&id=${ids}&key=${live.apiKey}`).then((x) => x.json());
+        setLiveVid(Object.fromEntries((r.items || []).map((v: any) => [v.id, { v: Number(v.statistics.viewCount || 0), l: Number(v.statistics.likeCount || 0), c: Number(v.statistics.commentCount || 0) }])));
+      } catch { /* */ }
+    };
+    tick(); const t = setInterval(tick, 60000); return () => clearInterval(t);
+  }, [p, live, yt]);
+
+  const acc = ACCOUNTS.find((a) => a.platform === p);
+  const t0 = today(), from = addDays(t0, -range);
+
+  // ---------- serie de seguidores ----------
+  const followers = useMemo(() => {
+    if (p === "youtube" && yt) {
+      const h = Object.entries(yt.historial || {}).filter(([d]) => d >= from).map(([d, v]) => ({ d, v: v.suscriptores }));
+      if (now && (!h.length || h[h.length - 1].d !== t0)) h.push({ d: t0, v: now.subs });
+      else if (now && h.length) h[h.length - 1].v = now.subs;
+      return h;
+    }
+    return snapshots.filter((s) => s.account === acc?.id && s.week_start >= weekStart(new Date(from))).sort((a, b) => a.week_start.localeCompare(b.week_start)).map((s) => ({ d: s.week_start, v: s.followers }));
+  }, [p, yt, now, snapshots, acc, from, t0]);
+  const cur = p === "youtube" ? (now?.subs ?? yt?.canal.suscriptores ?? null) : (followers[followers.length - 1]?.v ?? null);
+  const base = followers.length ? followers[0].v : null;
+
+  // ---------- publicaciones del calendario ----------
+  const mine = posts.filter((x) => x.platform === p && x.publish_date);
+  const weeks = Array.from({ length: 8 }, (_, i) => addDays(weekStart(), -7 * (7 - i)));
+  const perWeek = weeks.map((w) => ({ key: w, label: shortDate(w), value: mine.filter((x) => x.publish_date! >= w && x.publish_date! <= addDays(w, 6) && isPublished(x, t0)).length, tip: `Semana del ${shortDate(w)}` }));
+  const thisWeek = mine.filter((x) => x.publish_date! >= weekStart() && x.publish_date! <= addDays(weekStart(), 6));
+  let streak = 0; for (let d = t0; mine.some((x) => x.publish_date === d && isPublished(x, addDays(t0, 1))); d = addDays(d, -1)) streak++;
+  const target = (TARGETS as any)[p] as number;
+
+  // ---------- YouTube: días y vídeos ----------
+  const dias = (yt?.dias || []).filter((d) => d.day >= from);
+  const sum = (k: keyof YTStats["dias"][number]) => dias.reduce((a, d) => a + Number(d[k] || 0), 0);
+  const vids = (yt?.videos || []).map((v) => ({ ...v, vistas: liveVid[v.id]?.v ?? v.vistas, likes: liveVid[v.id]?.l ?? v.likes, comentarios: liveVid[v.id]?.c ?? v.comentarios, an: yt?.por_video?.[v.id] }));
+  const publicados = vids.filter((v) => v.privacidad === "public").sort((a, b) => (b.publicado || "").localeCompare(a.publicado || ""));
+  const programados = vids.filter((v) => v.programado).sort((a, b) => (a.programado || "").localeCompare(b.programado || ""));
+  const best = [...publicados].sort((a, b) => b.vistas - a.vistas)[0];
+  const avgPct = (() => { const xs = publicados.map((v) => v.an?.averageViewPercentage).filter((x): x is number => typeof x === "number"); return xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null; })();
+  const totalViews = now?.views ?? yt?.canal.vistas ?? 0;
+
+  return (
+    <div className={`rd ${T.cls}`}>
+      <div className="rd-glow" />
+      <header className="rd-head">
+        <div className="rd-id">
+          <BrandLogo platform={p} size={52} />
+          <div>
+            <h1>{T.name}</h1>
+            <span>{p === "youtube" && yt ? yt.canal.nombre : T.handle}</span>
+          </div>
+        </div>
+        <div className="rd-head-r">
+          {p === "youtube" && (live?.apiKey
+            ? <span className="rd-live yt-pulse"><Radio /> En directo · {now ? ago(new Date(now.at).toISOString()) : "conectando…"}</span>
+            : <span className="rd-live off"><Clock /> Datos del PC {yt ? ago(yt.actualizado) : "—"}</span>)}
+          <div className="rd-tabs">
+            {(Object.keys(THEME) as P[]).map((k) => (
+              <a key={k} href={`/red?p=${k}`} className={k === p ? "on" : ""} onClick={(e) => { e.preventDefault(); history.replaceState(null, "", `/red?p=${k}`); setP(k); }}>
+                <BrandLogo platform={k} size={18} /> {THEME[k].name}
+              </a>
+            ))}
+          </div>
+        </div>
+      </header>
+
+      {/* ticker principal */}
+      <section className="rd-hero">
+        <div className="rd-hero-l">
+          <div className="rd-label"><Users /> {T.unit}</div>
+          <div className="rd-big">{cur === null ? "—" : <CountUp value={cur} />}</div>
+          <div className="rd-hero-sub">
+            <Change now={cur} before={base} />
+            <span className="rd-muted">{RANGES.find((r) => r.id === range)?.l === "Todo" ? "desde el inicio" : `últimos ${RANGES.find((r) => r.id === range)?.l}`}</span>
+            {p === "youtube" && first !== null && now && now.subs > first && <span className="rd-new">+{now.subs - first} desde que abriste</span>}
+          </div>
+        </div>
+        <div className="rd-range">{RANGES.map((r) => <button key={r.id} className={range === r.id ? "on" : ""} onClick={() => setRange(r.id)}>{r.l}</button>)}</div>
+        <div className="rd-chart">
+          {followers.length >= 2
+            ? <AreaChart labels={followers.map((f) => dayLbl(f.d))} series={[{ id: "f", label: T.unit, color: T.accent, values: followers.map((f) => f.v) }]} height={260} />
+            : <div className="rd-empty"><span>La curva se dibuja sola en cuanto haya dos días de datos.</span><small>{p === "youtube" ? "El PC los apunta cada 30 min." : "Apunta los seguidores en el check-in del lunes."}</small></div>}
+        </div>
+      </section>
+
+      {flash && <div className="rd-toast"><UserPlus /> {flash}</div>}
+
+      {/* indicadores */}
+      {p === "youtube" ? (
+        <section className="rd-tiles">
+          <Tile icon={Eye} label="Visualizaciones" value={<CountUp value={totalViews} />} sub={`${fmt(sum("views"))} en el periodo`} spark={dias.map((d) => d.views)} color={T.accent} />
+          <Tile icon={Clock} label="Minutos vistos" value={<CountUp value={sum("estimatedMinutesWatched")} />} sub="en el periodo" spark={dias.map((d) => d.estimatedMinutesWatched)} color={T.accent} />
+          <Tile icon={UserPlus} label="Subs ganados" value={<>+<CountUp value={sum("subscribersGained")} /></>} sub={`−${fmt(sum("subscribersLost"))} perdidos`} spark={dias.map((d) => d.subscribersGained)} color="#0bb07b" />
+          <Tile icon={Target} label="% visto medio" value={avgPct === null ? "—" : `${avgPct.toFixed(0)} %`} sub={avgPct === null ? "llega a las 48 h" : avgPct < 40 ? "bajo: acortar (< 40 %)" : "bien (≥ 40 %)"} color={avgPct !== null && avgPct < 40 ? "#e5484d" : T.accent} />
+          <Tile icon={Heart} label="Me gusta" value={<CountUp value={publicados.reduce((a, v) => a + v.likes, 0)} />} sub={`${fmt(publicados.reduce((a, v) => a + v.comentarios, 0))} comentarios`} color={T.accent} />
+          <Tile icon={Play} label="Shorts" value={<CountUp value={publicados.length} />} sub={`${programados.length} programados`} color={T.accent} />
+        </section>
+      ) : (
+        <section className="rd-tiles">
+          <Tile icon={CalendarClock} label="Esta semana" value={<>{thisWeek.filter((x) => isPublished(x, t0)).length}<small>/{target}</small></>} sub={`${thisWeek.length} en el calendario`} spark={perWeek.map((w) => w.value)} color={T.accent} />
+          <Tile icon={Flame} label="Racha" value={<>{streak}<small> días</small></>} sub="publicando seguido" color={T.accent2} />
+          <Tile icon={Repeat2} label="Media semanal" value={(perWeek.reduce((a, w) => a + w.value, 0) / perWeek.length).toFixed(1).replace(".", ",")} sub="últimas 8 semanas" color={T.accent} />
+          <Tile icon={Trophy} label="Mejor semana" value={Math.max(0, ...perWeek.map((w) => w.value))} sub={perWeek.reduce((a, w) => (w.value > a.value ? w : a), perWeek[0])?.label} color={T.accent2} />
+        </section>
+      )}
+
+      <div className="rd-grid">
+        <section className="rd-card">
+          <h3>{p === "youtube" ? "Visualizaciones por día" : "Publicado por semana"}</h3>
+          <p className="rd-muted">{p === "youtube" ? "Analítica de YouTube (llega con 1-2 días de retraso)." : `Objetivo: ${target} a la semana.`}</p>
+          {p === "youtube"
+            ? (dias.length ? <ColumnChart data={dias.map((d) => ({ key: d.day, label: dayLbl(d.day), value: d.views, tip: `${dayLbl(d.day)} · ${fmt(d.views)} vistas · +${d.subscribersGained} subs` }))} highlight={dias[dias.length - 1]?.day} color={T.accent} height={220} />
+              : <div className="rd-empty sm"><span>Aún sin analítica: activa la YouTube Analytics API.</span></div>)
+            : <ColumnChart data={perWeek} highlight={weeks[weeks.length - 1]} color={T.accent} height={220} />}
+        </section>
+
+        <section className="rd-card">
+          <h3>{p === "youtube" ? "Próximos Shorts" : "Esta semana"}</h3>
+          <div className="rd-list">
+            {(p === "youtube" ? programados.map((v) => ({ k: v.id, t: v.titulo, d: v.programado!, img: v.miniatura })) : thisWeek.map((x) => ({ k: x.id!, t: x.title, d: x.publish_date!, img: undefined })))
+              .slice(0, 6).map((x) => (
+                <div key={x.k} className="rd-li">
+                  {x.img ? <img src={x.img} alt="" /> : <BrandLogo platform={p} size={34} />}
+                  <div className="mx-grow"><b className="mx-trunc">{x.t}</b><small>{shortDate(x.d.slice(0, 10))}{x.d.length > 10 ? ` · ${new Date(x.d).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}` : ""}</small></div>
+                </div>
+              ))}
+            {(p === "youtube" ? programados : thisWeek).length === 0 && <p className="rd-muted">Nada programado.</p>}
+          </div>
+        </section>
+      </div>
+
+      {p === "youtube" && (
+        <section className="rd-card">
+          <div className="flex items-center justify-between"><h3>Rendimiento de cada Short</h3>{best && best.vistas > 0 && <span className="rd-badge"><Trophy /> Ganador: {best.titulo.slice(0, 40)}</span>}</div>
+          <div className="rd-table">
+            <div className="rd-tr rd-th"><span>Short</span><span>Vistas</span><span>Me gusta</span><span>Coment.</span><span>% visto</span><span /></div>
+            {publicados.map((v) => {
+              const pct = v.an?.averageViewPercentage;
+              return (
+                <a key={v.id} className="rd-tr" href={`https://youtube.com/shorts/${v.id}`} target="_blank" rel="noreferrer">
+                  <span className="rd-vid">{v.miniatura && <img src={v.miniatura} alt="" />}<span><b className="mx-trunc">{v.titulo}</b><small>{v.publicado ? ago(v.publicado) : ""} · {secs(v.duracion)} s</small></span></span>
+                  <span className="rd-num">{fmt(v.vistas)}</span>
+                  <span className="rd-num"><Heart /> {fmt(v.likes)}</span>
+                  <span className="rd-num"><MessageCircle /> {fmt(v.comentarios)}</span>
+                  <span>{typeof pct === "number" ? <Ring pct={pct} size={38} color={pct < 40 ? "#e5484d" : T.accent} /> : <small className="rd-muted">48 h</small>}</span>
+                  <span>{typeof pct === "number" && pct < 40 ? <em className="rd-alert">acortar</em> : v.id === best?.id && v.vistas > 0 ? <em className="rd-win">top</em> : null}</span>
+                </a>
+              );
+            })}
+            {!publicados.length && <p className="rd-muted" style={{ padding: "1rem" }}>Todavía no hay Shorts públicos.</p>}
+          </div>
+        </section>
+      )}
+    </div>
+  );
+}
