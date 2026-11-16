@@ -42,8 +42,8 @@ export default function ContenidoPage() {
     setBusy(true); await loadWeekTemplate(week, posts); await refresh(); setBusy(false);
   }
 
-  // lo de la cuenta conjunta (lo que sale de Archivos › Aldia): una sola tarjeta por vídeo con su título,
-  // aunque se suba a varias redes (TikTok, Instagram…); lo publica cualquiera de los dos
+  // todo lo que sale de Archivos (de cualquier carpeta): una sola tarjeta por vídeo con su título,
+  // aunque se suba a varias redes (TikTok, LinkedIn, Instagram…): es lo que toca subir ese día
   const sharedCard = (group: Post[]) => {
     const p = group[0]; const done = group.every((x) => isPublished(x, t));
     const redes = group.map((x) => PLATFORMS[x.platform]?.label).join(" y ");
@@ -55,17 +55,17 @@ export default function ContenidoPage() {
     );
   };
 
-  // las tarjetas de un día: lo conjunto que sale del mismo vídeo de Archivos se junta en una
+  // las tarjetas de un día: lo que sale del mismo vídeo de Archivos se junta en una (con el título del TikTok)
   const dayCards = (list: Post[]) => {
     const groups = new Map<string, Post[]>();
     const out: (Post | Post[])[] = [];
     for (const p of [...list].sort((a, b) => b.platform.localeCompare(a.platform))) {
-      if (isShared(p.owner) && p.archivo) {
+      if (p.archivo) {
         const g = groups.get(p.archivo);
         if (g) g.push(p); else { const ng = [p]; groups.set(p.archivo, ng); out.push(ng); }
       }
     }
-    const rest = list.filter((p) => !(isShared(p.owner) && p.archivo)).sort((a, b) => a.platform.localeCompare(b.platform));
+    const rest = list.filter((p) => !p.archivo).sort((a, b) => a.platform.localeCompare(b.platform));
     return [...out.map((g) => sharedCard(g as Post[])), ...rest.map(card)];
   };
 
