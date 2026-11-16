@@ -1994,3 +1994,10 @@ a.rd-tr:hover { background: var(--rd-card2); }
 .pl-open { color: var(--text-muted); display: inline-flex; padding: 4px; border-radius: 8px; }
 .pl-open:hover { color: var(--ink); background: rgba(11,19,36,.06); }
 .pl-open svg { width: 14px; height: 14px; }
+.pl-who { display: block; font-size: .6875rem; color: var(--text-muted); font-weight: 600; margin-top: 1px; }
+.pl-item.pendiente .pl-state { background: #fff0f3; color: #d61f4a; }
+.pl-item.pendiente { border-color: #ffd0da; }
+.pl-done { display: inline-flex; align-items: center; gap: 4px; border: 0; background: #000; color: #fff; font: inherit; font-size: .72rem; font-weight: 700; padding: 5px 9px; border-radius: 9px; cursor: pointer; white-space: nowrap; }
+.pl-done svg { width: 12px; height: 12px; }
+.pl-done:hover { background: #fe2c55; }
+.pl-more { margin-top: .55rem; font-size: .75rem; color: var(--text-muted); font-weight: 600; }
