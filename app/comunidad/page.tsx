@@ -8,7 +8,7 @@ import { SKOOL_AT, fmt, pct, shortDate, today, weekStart } from "@/lib/social";
 import { deleteRow, listRows, saveRow, setSetting, tableMode } from "@/lib/store";
 import Portal from "@/components/Portal";
 import { useAuth } from "@/lib/AuthContext";
-import InvitesCard from "@/components/InvitesCard";
+// (Lectura rápida, Hacia Skool, De dónde viene la gente y Perfiles quitados el 16-11 a petición)
 import Link from "next/link";
 
 // Contador de la comunidad: no guardamos datos de nadie, solo «ha entrado uno más» y el día.
@@ -252,81 +252,6 @@ export default function ComunidadPage() {
           <h3 className="section-title">Por mes</h3>
           <p className="section-sub">Últimos 6 meses.</p>
           <Monthly data={months} highlight={mk} />
-        </div>
-      </div>
-
-      <div className="grid-2-1" style={{ marginTop: "1.25rem" }}>
-        <div className="card">
-          <h3 className="section-title">Lectura rápida</h3>
-          <ul className="cm-read">
-            <li>{!prevWeekCounts ? `Primera semana contando (desde el lunes ${shortDate(COUNT_START)}): ${thisWeek} ${thisWeek === 1 ? "persona nueva" : "personas nuevas"}. La semana que viene ya se compara con esta.`
-              : thisWeek > lastWeek ? `Esta semana va mejor que la anterior (${thisWeek} frente a ${lastWeek}).` : thisWeek < lastWeek ? `Esta semana va por debajo de la anterior (${thisWeek} frente a ${lastWeek}).` : `Esta semana va igual que la anterior (${thisWeek}).`}</li>
-            <li>{!prevMonthCounts ? `Primer mes contando: ${thisMonth} hasta ahora.`
-              : thisMonth >= lastMonth ? `El mes lleva ${thisMonth}, ${thisMonth - lastMonth} más que el mes pasado (${lastMonth}).` : `El mes lleva ${thisMonth}; el pasado cerró con ${lastMonth}.`}</li>
-            {topDay && <li>El día que más gente entra es el <b>{topDay}</b>: buen día para publicar lo que más tire.</li>}
-            {!total && !auto && <li>Pulsa +1 cada vez que entre alguien nuevo. Si ya había gente antes de empezar a contar, apúntala con «Otro día».</li>}
-            {auto && <li>Cuenta a quien sigue en el servidor (si alguien se va, deja de contar). Quien entre por otro sitio, con «Añadir a mano».</li>}
-          </ul>
-        </div>
-        <div className="card">
-          <h3 className="section-title">Hacia Skool</h3>
-          <p className="section-sub" style={{ marginBottom: "0.875rem" }}>Con {SKOOL_AT}–50 personas, abrir Skool gratis por invitación.</p>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-            <span className="text-sm font-semibold">Personas</span><span className="font-bold">{total}/{SKOOL_AT}</span>
-          </div>
-          <div style={{ height: 10, borderRadius: 99, background: "var(--bg-subtle, #eef0f3)", overflow: "hidden" }}>
-            <div style={{ width: `${Math.min(100, pct(total, SKOOL_AT))}%`, height: "100%", background: total >= SKOOL_AT ? "var(--ok)" : "var(--ink, var(--navy))" }} />
-          </div>
-          <p className="text-sm" style={{ marginTop: 10, color: "var(--text-secondary)" }}>
-            {total >= SKOOL_AT ? "Ya toca abrir Skool." : weeksToSkool ? `Faltan ${toSkool}; a este ritmo, unas ${weeksToSkool} semanas.` : `Faltan ${toSkool}.`}
-          </p>
-          {recent.length > 0 && (
-            <>
-              <h4 className="text-sm font-semibold" style={{ margin: "1.125rem 0 0.5rem" }}>Últimos días</h4>
-              <div className="cm-days">
-                {recent.map(([d, n]) => <span key={d} className="chip">{shortDate(d)} · +{n}</span>)}
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-
-      <div className="grid-2-1" style={{ marginTop: "1.25rem" }}>
-        <InvitesCard />
-        <div className="card">
-          <h3 className="section-title">Perfiles</h3>
-          <p className="section-sub">Lo que cada uno eligió al entrar en «¿Qué te interesa?» (puede elegir varios).</p>
-          {auto && dc.perfiles ? (
-            <>
-              <div className="pf-list">
-                {(() => { const mx = Math.max(1, ...dc.perfiles!.map((p) => p.count)); return dc.perfiles!.map((p) => (
-                  <div key={p.name} className={`pf-row${p.name === "Tengo un negocio" ? " hot" : ""}`}>
-                    <span>{p.name}</span><div className="pf-bar"><div style={{ width: `${(p.count / mx) * 100}%` }} /></div><span>{p.count}</span>
-                  </div>
-                )); })()}
-              </div>
-              {!!dc.sinPerfil && <p className="text-sm" style={{ color: "var(--text-muted)", marginTop: 10 }}>{dc.sinPerfil} de {dc.comunidad} aún sin perfil (entraron antes de que fuera obligatorio).</p>}
-              {dc.niveles && <p className="text-sm" style={{ color: "var(--text-secondary)", marginTop: 6 }}>Nivel: {dc.niveles.map((n) => `${n.name} ${n.count}`).join(" · ")}</p>}
-              <Link href="/posibles-clientes" className="btn-secondary" style={{ marginTop: 12, display: "inline-flex" }}>Ver posibles clientes</Link>
-              {dc.cuentas && (
-                <details className="cm-who">
-                  <summary>Quién no cuenta ({dc.cuentas.filter((c) => c.excluded).length})</summary>
-                  <p className="text-sm" style={{ color: "var(--text-muted)", margin: "6px 0 8px" }}>Marca las cuentas del equipo (y vuestras otras cuentas) para que no sumen. Se guarda para los dos.</p>
-                  {dc.cuentas.map((c) => (
-                    <label key={c.id} className={`cm-who-row${c.team ? " team" : ""}`}>
-                      <input type="checkbox" checked={c.excluded} disabled={c.team} onChange={() => toggleCuenta(c)} />
-                      <span><b>{c.name}</b> <small>@{c.username} · entró el {shortDate(c.joined_on)}{c.team ? " · equipo" : ""}</small></span>
-                    </label>
-                  ))}
-                  {manual.filter((j) => j.joined_on >= COUNT_START).length > 0 && (
-                    <p className="text-sm" style={{ marginTop: 8 }}>Además hay {manual.filter((j) => j.joined_on >= COUNT_START).length} apuntado(s) a mano: se quitan con «Deshacer».</p>
-                  )}
-                </details>
-              )}
-            </>
-          ) : (
-            <p className="text-sm" style={{ color: "var(--text-muted)", marginTop: 12 }}>Se ve en la versión publicada: lo lee el bot del Discord.</p>
-          )}
         </div>
       </div>
 

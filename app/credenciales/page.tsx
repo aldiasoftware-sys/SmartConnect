@@ -7,24 +7,25 @@ import { useAuth } from "@/lib/AuthContext";
 import Portal from "@/components/Portal";
 import { getSetting, setSetting } from "@/lib/store";
 import { BrandLogo } from "@/components/AccountIcon";
+import { Mark } from "@/components/BrandMarks";
 
 /** Carpetas automáticas por servicio, según el nombre de la credencial (el orden manda: la primera que encaja). */
 const FOLDERS: { name: string; re: RegExp; color: string; logo?: string }[] = [
   { name: "TikTok", re: /tik\s?tok/i, color: "#000000", logo: "tiktok" },
   { name: "Instagram", re: /instagram|\big\b/i, color: "#e1306c", logo: "instagram" },
   { name: "YouTube", re: /youtube|\byt\b/i, color: "#ff0000", logo: "youtube" },
-  { name: "Meta / Facebook", re: /facebook|\bmeta\b|whatsapp/i, color: "#1877f2" },
-  { name: "n8n", re: /n8n/i, color: "#ea4b71" },
-  { name: "IA", re: /openai|chatgpt|anthropic|claude|gemini|eleven\s?labs|mistral|groq|perplexity|midjourney|replicate|hugging/i, color: "#d97757" },
-  { name: "Google", re: /google|gmail|gcp|firebase|drive/i, color: "#4285f4" },
-  { name: "Microsoft", re: /microsoft|azure|outlook|office|365|teams|power\s?(bi|apps|automate|platform)|dataverse/i, color: "#0078d4" },
-  { name: "Discord", re: /discord/i, color: "#5865f2" },
-  { name: "Supabase y bases de datos", re: /supabase|postgres|mongo|mysql|airtable/i, color: "#1f9d6c" },
-  { name: "Código y despliegue", re: /github|gitlab|vercel|cloudflare|netlify|docker|aws|amazon|hostinger|ionos|godaddy|dominio|hosting|vps/i, color: "#24292f" },
-  { name: "Pagos", re: /stripe|paypal|revolut|bizum|banco|bank/i, color: "#635bff" },
-  { name: "Correo y newsletter", re: /resend|mailchimp|brevo|sendgrid|correo|mail/i, color: "#0e0e0e" },
-  { name: "Diseño", re: /canva|figma|adobe|capcut/i, color: "#00a5ad" },
-  { name: "LinkedIn", re: /linkedin/i, color: "#0a66c2" },
+  { name: "Meta / Facebook", logo: "meta", re: /facebook|\bmeta\b|whatsapp/i, color: "#1877f2" },
+  { name: "n8n", logo: "n8n", re: /n8n/i, color: "#ea4b71" },
+  { name: "IA", logo: "claude", re: /openai|chatgpt|anthropic|claude|gemini|eleven\s?labs|mistral|groq|perplexity|midjourney|replicate|hugging/i, color: "#d97757" },
+  { name: "Google", logo: "google", re: /google|gmail|gcp|firebase|drive/i, color: "#4285f4" },
+  { name: "Microsoft", logo: "microsoft", re: /microsoft|azure|outlook|office|365|teams|power\s?(bi|apps|automate|platform)|dataverse/i, color: "#0078d4" },
+  { name: "Discord", logo: "discord", re: /discord/i, color: "#5865f2" },
+  { name: "Supabase y bases de datos", logo: "supabase", re: /supabase|postgres|mongo|mysql|airtable/i, color: "#1f9d6c" },
+  { name: "Código y despliegue", logo: "vscode", re: /github|gitlab|vercel|cloudflare|netlify|docker|aws|amazon|hostinger|ionos|godaddy|dominio|hosting|vps/i, color: "#24292f" },
+  { name: "Pagos", logo: "stripe", re: /stripe|paypal|revolut|bizum|banco|bank/i, color: "#635bff" },
+  { name: "Correo y newsletter", logo: "mail", re: /resend|mailchimp|brevo|sendgrid|correo|mail/i, color: "#0e0e0e" },
+  { name: "Diseño", logo: "figma", re: /canva|figma|adobe|capcut/i, color: "#00a5ad" },
+  { name: "LinkedIn", logo: "linkedin", re: /linkedin/i, color: "#0a66c2" },
 ];
 const folderOf = (c: { name: string; user?: string }) => FOLDERS.find((f) => f.re.test(c.name || "")) || FOLDERS.find((f) => f.re.test(c.user || "")) || null;
 function byFolder<T extends { name: string; user?: string }>(items: T[]) {
@@ -431,7 +432,7 @@ export default function CredentialsPage() {
                 {byFolder(g.items).map((f) => (
                   <details key={f.name} className="cr-folder" open={!!query.trim() || g.items.length <= 6}>
                     <summary>
-                      {f.logo ? <BrandLogo platform={f.logo} size={26} /> : <span className="cr-folder-ico" style={{ background: f.color }}>{f.name === "Otros" ? "…" : f.name.slice(0, 2)}</span>}
+                      {f.logo && ["tiktok", "instagram", "youtube"].includes(f.logo) ? <BrandLogo platform={f.logo} size={26} /> : f.logo ? <Mark name={f.logo} size={26} /> : <span className="cr-folder-ico" style={{ background: "#eef1f6", color: "#6b7487" }}><FolderLock size={14} /></span>}
                       <b>{f.name}</b>
                       <span className="cr-vault-n">{f.items.length}</span>
                       <i className="cr-folder-chev" aria-hidden>›</i>

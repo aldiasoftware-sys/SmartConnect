@@ -1,5 +1,7 @@
 "use client";
 
+import { CountUp, Ring } from "@/components/charts";
+
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import Portal from "@/components/Portal";
@@ -260,7 +262,7 @@ export default function ClientesPage() {
               <Inbox />
             </span>
           </div>
-          <div className="mx-stat-value">{loading ? "—" : stats.total}</div>
+          <div className="mx-stat-value">{loading ? "—" : <CountUp value={stats.total} />}</div>
           <div className="mx-stat-sub">Mensajes recibidos</div>
         </div>
         <div className="mx-stat">
@@ -270,7 +272,7 @@ export default function ClientesPage() {
               <Clock />
             </span>
           </div>
-          <div className="mx-stat-value">{loading ? "—" : stats.pending}</div>
+          <div className="mx-stat-value">{loading ? "—" : <CountUp value={stats.pending} />}</div>
           <div className="mx-stat-sub">
             {stats.pending === 0 ? "Todo al día" : stats.pending === 1 ? "Espera respuesta" : "Esperan respuesta"}
           </div>
@@ -282,11 +284,13 @@ export default function ClientesPage() {
               <CheckCircle2 />
             </span>
           </div>
-          <div className="mx-stat-value">{loading ? "—" : stats.answered}</div>
-          <div className="cl-bar" aria-hidden>
-            <span style={{ width: `${ratio}%` }} />
+          <div className="cl-ring">
+            <Ring pct={ratio} size={52} color="var(--ok)" label={`${ratio} % respondido`} />
+            <div>
+              <div className="mx-stat-value">{loading ? "—" : <CountUp value={stats.answered} />}</div>
+              <div className="mx-stat-sub" style={{ marginTop: 4 }}>tasa de respuesta</div>
+            </div>
           </div>
-          <div className="mx-stat-sub">{ratio}% de tasa de respuesta</div>
         </div>
       </div>
 
