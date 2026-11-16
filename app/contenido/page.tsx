@@ -7,6 +7,7 @@ import { useSocial } from "@/lib/SocialContext";
 import { DIAS, KINDS, PAUSED_PLATFORMS, PLATFORMS, Post, STATUSES, TARGETS, addDays, contentByWeek, fromISO, isPublished, shortDate, shownStatus, statusOf, today, weekLabel, weekNumber, weekStart } from "@/lib/social";
 import { loadWeekTemplate } from "@/lib/content";
 import PostEditor from "@/components/PostEditor";
+import PublishLive from "@/components/PublishLive";
 import AccountsWeek from "@/components/AccountsWeek";
 import { useScope } from "@/lib/ScopeContext";
 import { TEAM, TeamMember, isShared, ownedBy } from "@/lib/team";
@@ -110,6 +111,8 @@ export default function ContenidoPage() {
       </div>
 
       {/* crecimiento de cada cuenta en esta semana (seguidores del check-in) y lo publicado del calendario */}
+      <PublishLive />
+
       <AccountsWeek week={week} posts={posts} snapshots={snapshots} onUpdate={() => openCheckin()} />
 
       {shown.map((m) => {
