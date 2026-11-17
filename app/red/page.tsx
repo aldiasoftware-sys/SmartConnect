@@ -77,14 +77,14 @@ export default function RedPage() {
 
   useEffect(() => { document.title = `${T.name} · Aldia Smart Connect`; }, [T.name]);
 
-  // datos del PC (cada 30 min) — y se recargan cada 5 min
+  // datos del PC (cada 10 min) — aquí se releen cada minuto
   useEffect(() => {
     if (p !== "youtube") return;
     const load = async () => {
       const { data } = await supabase.from("app_settings").select("key,value").in("key", ["youtube_stats", "youtube_live"]);
       for (const r of data || []) { if (r.key === "youtube_stats") setYt(r.value as YTStats); if (r.key === "youtube_live") setLive(r.value as any); }
     };
-    load(); const t = setInterval(load, 300000); return () => clearInterval(t);
+    load(); const t = setInterval(load, 60000); return () => clearInterval(t);
   }, [p]);
 
   // en directo: suscriptores y vistas cada 10 s; vistas de cada vídeo cada minuto
@@ -155,7 +155,11 @@ export default function RedPage() {
   const programados = vids.filter((v) => v.programado).sort((a, b) => (a.programado || "").localeCompare(b.programado || ""));
   const best = [...publicados].sort((a, b) => b.vistas - a.vistas)[0];
   const avgPct = (() => { const xs = publicados.map((v) => v.an?.averageViewPercentage).filter((x): x is number => typeof x === "number"); return xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null; })();
-  const totalViews = now?.views ?? yt?.canal.vistas ?? 0;
+  // el contador del canal va con mucho retraso; la suma de las vistas de cada vídeo (en directo) no
+  // subs en directo: el contador de suscriptores de cada día (historial + ahora) en vez de la analítica (2-3 días tarde)
+  const subsSpark = followers.map((f, i) => (i ? Math.max(0, f.v - followers[i - 1].v) : 0));
+  const subsGanados = Math.max(sum("subscribersGained"), subsSpark.reduce((a, b) => a + b, 0));
+  const totalViews = Math.max(now?.views ?? 0, yt?.canal.vistas ?? 0, vids.reduce((a, v) => a + (v.vistas || 0), 0));
 
   return (
     <div className={`rd ${T.cls}`}>
@@ -209,7 +213,7 @@ export default function RedPage() {
         <section className="rd-tiles">
           <Tile icon={Eye} label="Visualizaciones" value={<CountUp value={totalViews} />} sub={`${fmt(sum("views"))} en el periodo`} spark={dias.map((d) => d.views)} color={T.accent} />
           <Tile icon={Clock} label="Minutos vistos" value={<CountUp value={sum("estimatedMinutesWatched")} />} sub="en el periodo" spark={dias.map((d) => d.estimatedMinutesWatched)} color={T.accent} />
-          <Tile icon={UserPlus} label="Subs ganados" value={<>+<CountUp value={sum("subscribersGained")} /></>} sub={`−${fmt(sum("subscribersLost"))} perdidos`} spark={dias.map((d) => d.subscribersGained)} color="#0bb07b" />
+          <Tile icon={UserPlus} label="Subs ganados" value={<>+<CountUp value={subsGanados} /></>} sub={`−${fmt(sum("subscribersLost"))} perdidos`} spark={subsSpark} color="#0bb07b" />
           <Tile icon={Target} label="% visto medio" value={avgPct === null ? "—" : `${avgPct.toFixed(0)} %`} sub={avgPct === null ? "llega a las 48 h" : avgPct < 40 ? "bajo: acortar (< 40 %)" : "bien (≥ 40 %)"} color={avgPct !== null && avgPct < 40 ? "#e5484d" : T.accent} />
           <Tile icon={Heart} label="Me gusta" value={<CountUp value={publicados.reduce((a, v) => a + v.likes, 0)} />} sub={`${fmt(publicados.reduce((a, v) => a + v.comentarios, 0))} comentarios`} color={T.accent} />
           <Tile icon={Play} label="Shorts" value={<CountUp value={publicados.length} />} sub={`${programados.length} programados`} color={T.accent} />
@@ -235,7 +239,7 @@ export default function RedPage() {
       <div className="rd-grid">
         <section className="rd-card">
           <h3>{p === "youtube" ? "Visualizaciones por día" : p === "instagram" && igDias.length ? "Alcance por día" : "Publicado por semana"}</h3>
-          <p className="rd-muted">{p === "youtube" ? "Analítica de YouTube (llega con 1-2 días de retraso)." : p === "instagram" && igDias.length ? "Cuentas alcanzadas cada día (Instagram)." : `Objetivo: ${target} a la semana.`}</p>
+          <p className="rd-muted">{p === "youtube" ? "Vistas casi en directo (cada 10 min); minutos y me gusta llegan con 1-2 días de retraso." : p === "instagram" && igDias.length ? "Cuentas alcanzadas cada día (Instagram)." : `Objetivo: ${target} a la semana.`}</p>
           {p === "youtube"
             ? (dias.length ? <ColumnChart data={dias.map((d) => ({ key: d.day, label: dayLbl(d.day), value: d.views, tip: `${dayLbl(d.day)} · ${fmt(d.views)} vistas · +${d.subscribersGained} subs` }))} highlight={dias[dias.length - 1]?.day} color={T.accent} height={220} />
               : <div className="rd-empty sm"><span>Aún sin analítica: activa la YouTube Analytics API.</span></div>)
