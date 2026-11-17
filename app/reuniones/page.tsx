@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import Portal from "@/components/Portal";
 import { guardarRespuesta, useAsistencia } from "@/lib/asistencia";
 import { TEAM } from "@/lib/team";
+import ActasReuniones from "@/components/ActasReuniones";
 import {
   Calendar as CalendarIcon,
   Clock,
@@ -19,6 +20,8 @@ import {
   Trash2,
   CalendarDays,
   ArrowUpRight,
+  Mic,
+  FileText,
 } from "lucide-react";
 
 interface Reunion {
@@ -26,9 +29,14 @@ interface Reunion {
   nombre_reunion: string;
   fecha_reunion: string;
   duracion: string;
-  origen: "Calendly" | "Telefono" | "Otro";
+  origen: "Calendly" | "Telefono" | "Otro" | "Grabada";
   notas?: string;
   created_at?: string;
+  // reuniones grabadas con la app de Mac «Reuniones ALDIA» (reuniones_actas.sql)
+  acta?: string | null;
+  transcripcion?: string | null;
+  peticiones?: number | null;
+  clave_local?: string | null;
 }
 
 type Origen = Reunion["origen"];
@@ -37,6 +45,7 @@ const ORIGENES: { id: Origen; label: string; cls: string; Icon: typeof Video }[]
   { id: "Calendly", label: "Calendly", cls: "cal", Icon: Video },
   { id: "Telefono", label: "Teléfono", cls: "tel", Icon: Phone },
   { id: "Otro", label: "Otro", cls: "otro", Icon: MoreHorizontal },
+  { id: "Grabada", label: "Grabada", cls: "grab", Icon: Mic },
 ];
 const origenDe = (o?: string | null) => ORIGENES.find((x) => x.id === o) || ORIGENES[2];
 
@@ -84,6 +93,7 @@ export default function ReunionesPage() {
   const [duracion, setDuracion] = useState("30 min");
   const [saving, setSaving] = useState(false);
   const [dayOpen, setDayOpen] = useState<string | null>(null);
+  const [actasOpen, setActasOpen] = useState<string | null | false>(false);
 
   // Calendar state
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -272,6 +282,8 @@ export default function ReunionesPage() {
     return m;
   }, [reuniones]);
 
+  const actas = useMemo(() => reuniones.filter((r) => r.origen === "Grabada" || !!r.acta), [reuniones]);
+
   const getReunionesForDay = (d: Date) => byDay.get(keyOf(d)) || [];
 
   const monthReuniones = reuniones.filter((r) => {
@@ -397,6 +409,11 @@ export default function ReunionesPage() {
               <ChevronRight />
             </button>
           </div>
+          <button className="btn-secondary reu-actas-btn" onClick={() => setActasOpen(null)} title="Actas de las reuniones grabadas">
+            <FileText size={16} />
+            Actas
+            {actas.length > 0 && <span className="mx-count">{actas.length}</span>}
+          </button>
           <button className="btn-primary" onClick={() => openCreateDrawer()}>
             <Plus size={18} />
             Nueva Reunión
@@ -571,6 +588,10 @@ export default function ReunionesPage() {
         </Portal>
       )}
 
+      {actasOpen !== false && (
+        <ActasReuniones actas={actas} inicial={actasOpen} onClose={() => setActasOpen(false)} />
+      )}
+
       {/* Crear / editar */}
       {isDrawerOpen && (
         <Portal>
@@ -656,7 +677,7 @@ export default function ReunionesPage() {
                 <div className="form-group">
                   <label>Origen</label>
                   <div className="reu-origen">
-                    {ORIGENES.map((o) => (
+                    {ORIGENES.filter((o) => o.id !== "Grabada" || currentReunion?.origen === "Grabada").map((o) => (
                       <label key={o.id} className={o.cls}>
                         <input type="radio" name="origen" value={o.id} defaultChecked={(currentReunion?.origen || "Calendly") === o.id} required />
                         <span><o.Icon />{o.label}</span>
@@ -688,9 +709,16 @@ export default function ReunionesPage() {
 
               <div className="dialog-foot">
                 {currentReunion?.id ? (
-                  <button type="button" className="btn-danger" onClick={() => handleDelete(currentReunion.id!)}>
-                    <Trash2 size={15} /> Eliminar
-                  </button>
+                  <div className="reu-foot-actions">
+                    <button type="button" className="btn-danger" onClick={() => handleDelete(currentReunion.id!)}>
+                      <Trash2 size={15} /> Eliminar
+                    </button>
+                    {currentReunion.acta && (
+                      <button type="button" className="btn-secondary" onClick={() => { setIsDrawerOpen(false); setActasOpen(currentReunion.id!); }}>
+                        <FileText size={15} /> Ver acta
+                      </button>
+                    )}
+                  </div>
                 ) : <span />}
                 <div className="reu-foot-actions">
                   <button type="button" className="btn-secondary" onClick={() => setIsDrawerOpen(false)}>Cancelar</button>
@@ -906,6 +934,11 @@ export default function ReunionesPage() {
         }
         .reu-ev.tel { --c: #0b8a59; --bg: var(--ok-soft); }
         .reu-ev.otro { --c: var(--text-secondary); --bg: var(--bg-surface); }
+        .reu-ev.grab { --c: #ff3b30; --bg: #fff0ef; }
+        .reu-dot.grab { background: #ff3b30; }
+        .reu-o.grab { background: #fff0ef; color: #ff3b30; }
+        .reu-origen label.grab input:checked + span { border-color: #ff3b30; background: #fff0ef; color: #ff3b30; box-shadow: 0 0 0 1px #ff3b30; }
+        .reu-actas-btn { display: inline-flex; align-items: center; gap: 6px; }
         .reu-ev:hover { background: var(--c); color: #fff; }
         .reu-ev.done { opacity: 0.62; }
         .reu-ev.pend { --c: #e5221b; --bg: #ffe9e7; box-shadow: inset 0 0 0 1.5px #ff3b30; font-weight: 600; }

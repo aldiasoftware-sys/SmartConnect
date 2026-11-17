@@ -95,3 +95,7 @@ Prioridad: 1) Contenido · 2) CRM · 3) Cuadro semanal y metas · 4) Registro de
 - [ ] ManyChat o flujo propio en n8n
 - [x] Newsletter: propia con Resend (06-11)
 - [ ] Responsables de cada rol
+
+## Reuniones › Actas (17-11, app de Mac «Reuniones ALDIA»)
+- Skill `reuniones-aldia` (en Skills): app de Mac que graba, transcribe en local (Whisper) y escribe el acta con Claude; sube cada reunión a `reuniones` con origen «Grabada» y las columnas `acta`, `transcripcion`, `peticiones` y `clave_local` (upsert por `clave_local`). SQL: `reuniones_actas.sql`.
+- En `/reuniones`: botón «Actas» (`components/ActasReuniones.tsx`, Markdown mínimo propio) y «Ver acta» en la ficha. Las grabadas no piden «¿Asistirás?» (`lib/asistencia.ts`).

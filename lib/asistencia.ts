@@ -35,7 +35,8 @@ export function useAsistencia() {
       supabase.from("reuniones").select("id,nombre_reunion,fecha_reunion,duracion,origen").gte("fecha_reunion", desde).order("fecha_reunion", { ascending: true }),
       getSetting<Asistencia>(KEY, {}),
     ]);
-    setReuniones((data as ReunionLite[]) || []); setAsis(a || {});
+    // las grabadas con la app de Mac ya han pasado: no se pregunta «¿Asistirás?»
+    setReuniones(((data as ReunionLite[]) || []).filter((r) => r.origen !== "Grabada")); setAsis(a || {});
   }, []);
 
   useEffect(() => {

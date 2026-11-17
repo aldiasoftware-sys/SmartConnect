@@ -4,8 +4,12 @@ CREATE TABLE IF NOT EXISTS reuniones (
   nombre_reunion TEXT NOT NULL,
   fecha_reunion TIMESTAMP WITH TIME ZONE NOT NULL,
   duracion TEXT, -- e.g., "30 min", "1 hora"
-  origen TEXT CHECK (origen IN ('Calendly', 'Telefono', 'Otro')),
+  origen TEXT CHECK (origen IN ('Calendly', 'Telefono', 'Otro', 'Grabada')),
   notas TEXT,
+  acta TEXT,              -- reuniones grabadas con la app «Reuniones ALDIA» (ver reuniones_actas.sql)
+  transcripcion TEXT,
+  peticiones INTEGER,
+  clave_local TEXT UNIQUE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
