@@ -21,6 +21,10 @@ const THEME: Record<P, { name: string; handle: string; accent: string; accent2: 
 const RANGES = [{ id: 7, l: "7D" }, { id: 30, l: "1M" }, { id: 90, l: "3M" }, { id: 3650, l: "Todo" }];
 
 type YTVideo = { id: string; titulo: string; publicado?: string; programado?: string | null; privacidad: string; miniatura?: string; vistas: number; likes: number; comentarios: number; duracion?: string };
+type IGReel = { id: string; titulo: string; publicado?: string; link?: string; miniatura?: string; tipo?: string; likes: number; comentarios: number;
+  views?: number; reach?: number; shares?: number; saved?: number; total_interactions?: number; ig_reels_avg_watch_time?: number };
+type IGStats = { cuenta: { usuario: string; seguidores: number; publicaciones: number; foto?: string }; reels: IGReel[]; actualizado: string;
+  dias: { day: string; reach?: number; views?: number; accounts_engaged?: number; total_interactions?: number }[]; historial: Record<string, { seguidores: number }> };
 type YTStats = {
   canal: { id: string; nombre: string; suscriptores: number; vistas: number; videos: number };
   videos: YTVideo[]; actualizado: string;
@@ -63,6 +67,14 @@ export default function RedPage() {
   const [first, setFirst] = useState<number | null>(null);
   const [liveVid, setLiveVid] = useState<Record<string, { v: number; l: number; c: number }>>({});
   const [flash, setFlash] = useState<string>("");
+  const [igs, setIgs] = useState<IGStats | null>(null);
+
+  // Instagram: lo sube el PC cada 10 min (instagram.py stats); aquí se relee cada minuto
+  useEffect(() => {
+    if (p !== "instagram") return;
+    const load = async () => { const { data } = await supabase.from("app_settings").select("value").eq("key", "instagram_stats").maybeSingle(); if (data?.value) setIgs(data.value as IGStats); };
+    load(); const t = setInterval(load, 60000); return () => clearInterval(t);
+  }, [p]);
 
   useEffect(() => { document.title = `${T.name} · Aldia Smart Connect`; }, [T.name]);
 
@@ -117,9 +129,15 @@ export default function RedPage() {
       else if (now && h.length) h[h.length - 1].v = now.subs;
       return h;
     }
+    if (p === "instagram" && igs) return Object.entries(igs.historial || {}).filter(([d]) => d >= from).map(([d, v]) => ({ d, v: v.seguidores }));
     return snapshots.filter((s) => s.account === acc?.id && s.week_start >= weekStart(new Date(from))).sort((a, b) => a.week_start.localeCompare(b.week_start)).map((s) => ({ d: s.week_start, v: s.followers }));
-  }, [p, yt, now, snapshots, acc, from, t0]);
-  const cur = p === "youtube" ? (now?.subs ?? yt?.canal.suscriptores ?? null) : (followers[followers.length - 1]?.v ?? null);
+  }, [p, yt, igs, now, snapshots, acc, from, t0]);
+  const cur = p === "youtube" ? (now?.subs ?? yt?.canal.suscriptores ?? null) : p === "instagram" && igs ? igs.cuenta.seguidores : (followers[followers.length - 1]?.v ?? null);
+  // Instagram: días y Reels
+  const igDias = (igs?.dias || []).filter((d) => d.day >= from);
+  const igSum = (k: "reach" | "views" | "accounts_engaged" | "total_interactions") => igDias.reduce((a, d) => a + Number(d[k] || 0), 0);
+  const igReels = (igs?.reels || []).filter((r) => r.tipo === "REELS" || r.tipo === "VIDEO").sort((a, b) => (b.publicado || "").localeCompare(a.publicado || ""));
+  const igBest = [...igReels].sort((a, b) => (b.views || 0) - (a.views || 0))[0];
   const base = followers.length ? followers[0].v : null;
 
   // ---------- publicaciones del calendario ----------
@@ -148,13 +166,14 @@ export default function RedPage() {
           <BrandLogo platform={p} size={52} />
           <div>
             <h1>{T.name}</h1>
-            <span>{p === "youtube" && yt ? yt.canal.nombre : T.handle}</span>
+            <span>{p === "youtube" && yt ? yt.canal.nombre : p === "instagram" && igs ? `@${igs.cuenta.usuario}` : T.handle}</span>
           </div>
         </div>
         <div className="rd-head-r">
           {p === "youtube" && (live?.apiKey
             ? <span className="rd-live yt-pulse"><Radio /> En directo · {now ? ago(new Date(now.at).toISOString()) : "conectando…"}</span>
             : <span className="rd-live off"><Clock /> Datos del PC {yt ? ago(yt.actualizado) : "—"}</span>)}
+          {p === "instagram" && <span className="rd-live off"><Clock /> Datos del PC {igs ? ago(igs.actualizado) : "—"}</span>}
           <div className="rd-tabs">
             {(Object.keys(THEME) as P[]).map((k) => (
               <a key={k} href={`/red?p=${k}`} className={k === p ? "on" : ""} onClick={(e) => { e.preventDefault(); history.replaceState(null, "", `/red?p=${k}`); setP(k); }}>
@@ -182,7 +201,7 @@ export default function RedPage() {
         <div className="rd-chart">
           {followers.length >= 2
             ? <AreaChart labels={followers.map((f) => dayLbl(f.d))} series={[{ id: "f", label: T.unit, color: T.accent, values: followers.map((f) => f.v) }]} height={260} />
-            : <div className="rd-empty"><span>La curva se dibuja sola en cuanto haya dos días de datos.</span><small>{p === "youtube" ? "El PC los apunta cada 30 min." : "Apunta los seguidores en el check-in del lunes."}</small></div>}
+            : <div className="rd-empty"><span>La curva se dibuja sola en cuanto haya dos días de datos.</span><small>{p === "tiktok" ? "Apunta los seguidores en el check-in del lunes." : "El PC los apunta solo cada 10 min."}</small></div>}
         </div>
       </section>
 
@@ -198,6 +217,15 @@ export default function RedPage() {
           <Tile icon={Heart} label="Me gusta" value={<CountUp value={publicados.reduce((a, v) => a + v.likes, 0)} />} sub={`${fmt(publicados.reduce((a, v) => a + v.comentarios, 0))} comentarios`} color={T.accent} />
           <Tile icon={Play} label="Shorts" value={<CountUp value={publicados.length} />} sub={`${programados.length} programados`} color={T.accent} />
         </section>
+      ) : p === "instagram" && igs ? (
+        <section className="rd-tiles">
+          <Tile icon={Eye} label="Visualizaciones" value={<CountUp value={Math.max(igSum("views"), igReels.reduce((a, r) => a + (r.views || 0), 0))} />} sub="de todos los Reels" spark={igDias.map((d) => d.views || 0)} color={T.accent} />
+          <Tile icon={Users} label="Alcance" value={<CountUp value={igSum("reach")} />} sub="cuentas alcanzadas" spark={igDias.map((d) => d.reach || 0)} color={T.accent2} />
+          <Tile icon={Heart} label="Me gusta" value={<CountUp value={igReels.reduce((a, r) => a + (r.likes || 0), 0)} />} sub={`${fmt(igReels.reduce((a, r) => a + (r.comentarios || 0), 0))} comentarios`} color={T.accent} />
+          <Tile icon={Repeat2} label="Compartidos" value={<CountUp value={igReels.reduce((a, r) => a + (r.shares || 0), 0)} />} sub={`${fmt(igReels.reduce((a, r) => a + (r.saved || 0), 0))} guardados`} color={T.accent2} />
+          <Tile icon={CalendarClock} label="Esta semana" value={<>{thisWeek.filter((x) => isPublished(x, t0)).length}<small>/{target}</small></>} sub="Reels publicados" color={T.accent} />
+          <Tile icon={Play} label="Publicaciones" value={<CountUp value={igs.cuenta.publicaciones} />} sub="en el perfil" color={T.accent} />
+        </section>
       ) : (
         <section className="rd-tiles">
           <Tile icon={CalendarClock} label="Esta semana" value={<>{thisWeek.filter((x) => isPublished(x, t0)).length}<small>/{target}</small></>} sub={`${thisWeek.length} en el calendario`} spark={perWeek.map((w) => w.value)} color={T.accent} />
@@ -209,11 +237,12 @@ export default function RedPage() {
 
       <div className="rd-grid">
         <section className="rd-card">
-          <h3>{p === "youtube" ? "Visualizaciones por día" : "Publicado por semana"}</h3>
-          <p className="rd-muted">{p === "youtube" ? "Analítica de YouTube (llega con 1-2 días de retraso)." : `Objetivo: ${target} a la semana.`}</p>
+          <h3>{p === "youtube" ? "Visualizaciones por día" : p === "instagram" && igDias.length ? "Alcance por día" : "Publicado por semana"}</h3>
+          <p className="rd-muted">{p === "youtube" ? "Analítica de YouTube (llega con 1-2 días de retraso)." : p === "instagram" && igDias.length ? "Cuentas alcanzadas cada día (Instagram)." : `Objetivo: ${target} a la semana.`}</p>
           {p === "youtube"
             ? (dias.length ? <ColumnChart data={dias.map((d) => ({ key: d.day, label: dayLbl(d.day), value: d.views, tip: `${dayLbl(d.day)} · ${fmt(d.views)} vistas · +${d.subscribersGained} subs` }))} highlight={dias[dias.length - 1]?.day} color={T.accent} height={220} />
               : <div className="rd-empty sm"><span>Aún sin analítica: activa la YouTube Analytics API.</span></div>)
+            : p === "instagram" && igDias.length ? <ColumnChart data={igDias.map((d) => ({ key: d.day, label: dayLbl(d.day), value: d.reach || 0, tip: `${dayLbl(d.day)} · ${fmt(d.reach || 0)} de alcance${d.views ? ` · ${fmt(d.views)} vistas` : ""}` }))} highlight={igDias[igDias.length - 1]?.day} color={T.accent} height={220} />
             : <ColumnChart data={perWeek} highlight={weeks[weeks.length - 1]} color={T.accent} height={220} />}
         </section>
 
@@ -231,6 +260,26 @@ export default function RedPage() {
           </div>
         </section>
       </div>
+
+      {p === "instagram" && igs && (
+        <section className="rd-card">
+          <div className="flex items-center justify-between"><h3>Rendimiento de cada Reel</h3>{igBest && (igBest.views || 0) > 0 && <span className="rd-badge"><Trophy /> Ganador: {igBest.titulo.slice(0, 40)}</span>}</div>
+          <div className="rd-table">
+            <div className="rd-tr rd-th"><span>Reel</span><span>Vistas</span><span>Me gusta</span><span>Coment.</span><span>Alcance</span><span /></div>
+            {igReels.map((r) => (
+              <a key={r.id} className="rd-tr" href={r.link} target="_blank" rel="noreferrer">
+                <span className="rd-vid">{r.miniatura && <img src={r.miniatura} alt="" />}<span><b className="mx-trunc">{r.titulo || "Reel"}</b><small>{r.publicado ? ago(r.publicado) : ""}{r.shares ? ` · ${r.shares} compartidos` : ""}</small></span></span>
+                <span className="rd-num">{fmt(r.views || 0)}</span>
+                <span className="rd-num"><Heart /> {fmt(r.likes)}</span>
+                <span className="rd-num"><MessageCircle /> {fmt(r.comentarios)}</span>
+                <span className="rd-num">{fmt(r.reach || 0)}</span>
+                <span>{r.id === igBest?.id && (r.views || 0) > 0 ? <em className="rd-win">top</em> : null}</span>
+              </a>
+            ))}
+            {!igReels.length && <p className="rd-muted" style={{ padding: "1rem" }}>Todavía no hay Reels.</p>}
+          </div>
+        </section>
+      )}
 
       {p === "youtube" && (
         <section className="rd-card">
