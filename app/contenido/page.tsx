@@ -91,11 +91,7 @@ export default function ContenidoPage() {
         <div>
           <div className="eyebrow">Rutina de contenido</div>
           <h2 className="page-title">Contenido</h2>
-          <p className="page-subtitle">Un calendario para cada uno: lo que sube cada uno a Archivos se pone solo en el suyo. Grabamos en lote el fin de semana y publicamos todos los días, también sábado y domingo. Pulsa una pieza que viene de Archivos para ir a su vídeo.</p>
-        </div>
-        <div className="flex gap-3 items-center">
-          <button className="btn-secondary" onClick={template} disabled={busy || loading}><Wand2 style={{ width: 16, height: 16 }} /> Cargar semana tipo</button>
-          <button className="btn-primary" onClick={() => setEditing(blank(t >= week && t <= days[6] ? t : week, "tiktok", me?.owner || "Aldia"))}><Plus style={{ width: 17, height: 17 }} /> Nueva pieza</button>
+          <p className="page-subtitle">Lo que sale cada día en YouTube, Instagram y TikTok: Millán a las 11:00 y Guille a las 12:00. El PC lo publica solo y aquí ves en qué punto está cada vídeo.</p>
         </div>
       </div>
 
@@ -110,44 +106,12 @@ export default function ContenidoPage() {
         </div>
       </div>
 
-      {/* crecimiento de cada cuenta en esta semana (seguidores del check-in) y lo publicado del calendario */}
-      <PublishLive />
-
       <AccountsWeek week={week} posts={posts} snapshots={snapshots} onUpdate={() => openCheckin()} />
 
-      {shown.map((m) => {
-        const mine = of(m)(weekPosts), n = (pl: string) => mine.filter((p) => p.platform === pl).length;
-        return (
-          <section key={m.id} className="cal-person">
-            <div className="cal-person-head">
-              <span className="mx-avatar">{m.name[0]}</span>
-              <div className="mx-grow">
-                <div className="mx-title">Calendario de {m.name}{me?.id === m.id && <span className="mx-count" style={{ marginLeft: 10 }}>Tú</span>}</div>
-                <div className="mx-meta">Lo que se sube a Archivos › {m.folder} entra aquí solo</div>
-              </div>
-              <span className="mx-pill">TikTok {n("tiktok")}</span>
-              <span className="mx-pill">Instagram {n("instagram")}</span>
-              <span className="mx-pill">YouTube {n("youtube")}</span>
-            </div>
-            <div className="week-board">
-              {days.map((d, i) => (
-                <div key={d} className={`day-col ${d === t ? "today" : ""} ${i >= 5 ? "weekend" : ""}`}>
-                  <div className="day-head"><b>{DIAS[i]}</b><span>{fromISO(d).getDate()}</span></div>
-                  {i >= 5 && (
-                    <div className="day-off">
-                      <b>Día de grabación</b>
-                      <span>Se graba en lote y también se publica.</span>
-                    </div>
-                  )}
-                  {dayCards(mine.filter((p) => p.publish_date === d))}
-                  <button className="add-slot" onClick={() => setEditing(blank(d, "tiktok", m.owner))}>+ Añadir</button>
-                </div>
-              ))}
-            </div>
-          </section>
-        );
-      })}
+      <PublishLive />
 
+
+      {/* (calendarios por persona quitados el 17-11: la agenda «Publicación de la semana» los sustituye) */}
       {editing && <PostEditor post={editing} onClose={() => setEditing(null)} onSaved={refresh} />}
     </div>
   );

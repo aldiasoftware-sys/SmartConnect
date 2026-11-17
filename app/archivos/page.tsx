@@ -26,6 +26,12 @@ export default function ArchivosPage() {
   const { refresh } = useSocial();
   const { me, scope } = useScope();
   useEffect(() => { if (scope === "yo" && me) { setPerson(me.folder); setDay(null); } }, [scope, me?.folder]); // eslint-disable-line react-hooks/exhaustive-deps
+  // al entrar, directo a tu carpeta (Millán → Alejandro, Guille → Guille), salvo que venga ?abrir= desde el Calendario
+  const entrado = useRef(false);
+  useEffect(() => {
+    if (entrado.current || !me) return; entrado.current = true;
+    if (!new URLSearchParams(window.location.search).get("abrir")) setPerson(me.folder);
+  }, [me?.folder]); // eslint-disable-line react-hooks/exhaustive-deps
   const people = (scope === "yo" && me ? ["Aldia", me.folder] : PEOPLE).filter((p) => PEOPLE.includes(p));   // al cambiar Archivos, el calendario se pone al día
   async function load(doSweep = false) {
     setLoading(true); setError("");

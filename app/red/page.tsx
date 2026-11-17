@@ -10,7 +10,6 @@ import { useSocial } from "@/lib/SocialContext";
 import { ACCOUNTS, TARGETS, addDays, fmt, isPublished, shortDate, today, weekStart } from "@/lib/social";
 import { BrandLogo } from "@/components/AccountIcon";
 import { AreaChart, ColumnChart, CountUp, Ring, Sparkline } from "@/components/charts";
-import PublishLive from "@/components/PublishLive";
 
 type P = "youtube" | "tiktok" | "instagram";
 const THEME: Record<P, { name: string; handle: string; accent: string; accent2: string; cls: string; unit: string }> = {
@@ -183,8 +182,6 @@ export default function RedPage() {
           </div>
         </div>
       </header>
-
-      <PublishLive dark={p !== "instagram"} />
 
       {/* ticker principal */}
       <section className="rd-hero">
