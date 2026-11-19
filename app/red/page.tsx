@@ -9,6 +9,7 @@ import { supabase } from "@/lib/supabase";
 import { useSocial } from "@/lib/SocialContext";
 import { ACCOUNTS, TARGETS, addDays, fmt, isPublished, shortDate, today, weekStart } from "@/lib/social";
 import { BrandLogo } from "@/components/AccountIcon";
+import { groupKits, listAll, signedUrl } from "@/lib/files";
 import { AreaChart, ColumnChart, CountUp, Ring, Sparkline } from "@/components/charts";
 
 type P = "youtube" | "tiktok" | "instagram";
@@ -67,6 +68,8 @@ export default function RedPage() {
   const [liveVid, setLiveVid] = useState<Record<string, { v: number; l: number; c: number }>>({});
   const [flash, setFlash] = useState<string>("");
   const [igs, setIgs] = useState<IGStats | null>(null);
+  const [thumbs, setThumbs] = useState<Record<string, string>>({});
+  const [badImg, setBadImg] = useState<Record<string, true>>({});
 
   // Instagram: lo sube el PC cada 10 min (instagram.py stats); aquí se relee cada minuto
   useEffect(() => {
@@ -74,6 +77,33 @@ export default function RedPage() {
     const load = async () => { const { data } = await supabase.from("app_settings").select("value").eq("key", "instagram_stats").maybeSingle(); if (data?.value) setIgs(data.value as IGStats); };
     load(); const t = setInterval(load, 60000); return () => clearInterval(t);
   }, [p]);
+
+  // Próximos Shorts: YouTube solo da miniaturas firmadas (caducan en horas) de los vídeos privados/programados,
+  // así que usamos la «miniatura LinkedIn» del kit en Archivos (ruta en «publicando»; si se movió, por el nombre de la pieza).
+  useEffect(() => {
+    if (p !== "youtube" || !yt) return;
+    const ids = yt.videos.filter((v) => v.programado).map((v) => v.id).filter((id) => !thumbs[id]);
+    if (!ids.length) return;
+    (async () => {
+      try {
+        const { data } = await supabase.from("app_settings").select("value").eq("key", "publicando").maybeSingle();
+        const arch: Record<string, string> = {};
+        for (const i of Object.values((data?.value || {}) as Record<string, any>)) {
+          const id = String(i?.link || "").match(/shorts\/([\w-]{11})/)?.[1];
+          if (i?.red === "youtube" && id && i.archivo) arch[id] = i.archivo;
+        }
+        const { kits } = groupKits(await listAll());
+        const out: Record<string, string> = {};
+        for (const id of ids) {
+          const a = arch[id]; if (!a) continue;
+          const base = a.split("/").pop();
+          const k = kits.find((x) => x.thumb?.path.startsWith(`${a} - `)) || kits.find((x) => x.thumb && x.name === base);
+          if (k?.thumb) { try { out[id] = await signedUrl(k.thumb.path); } catch { /* sin miniatura */ } }
+        }
+        if (Object.keys(out).length) setThumbs((t) => ({ ...t, ...out }));
+      } catch { /* sin Archivos: se queda el logo */ }
+    })();
+  }, [p, yt]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { document.title = `${T.name} · Aldia Smart Connect`; }, [T.name]);
 
@@ -250,10 +280,10 @@ export default function RedPage() {
         <section className="rd-card">
           <h3>{p === "youtube" ? "Próximos Shorts" : "Esta semana"}</h3>
           <div className="rd-list">
-            {(p === "youtube" ? programados.map((v) => ({ k: v.id, t: v.titulo, d: v.programado!, img: v.miniatura })) : thisWeek.map((x) => ({ k: x.id!, t: x.title, d: x.publish_date!, img: undefined })))
+            {(p === "youtube" ? programados.map((v) => ({ k: v.id, t: v.titulo, d: v.programado!, img: thumbs[v.id] || (v.privacidad === "public" ? v.miniatura : undefined) })) : thisWeek.map((x) => ({ k: x.id!, t: x.title, d: x.publish_date!, img: undefined })))
               .slice(0, 6).map((x) => (
                 <div key={x.k} className="rd-li">
-                  {x.img ? <img src={x.img} alt="" /> : <BrandLogo platform={p} size={34} />}
+                  {x.img && !badImg[x.k] ? <img src={x.img} alt="" onError={() => setBadImg((b) => ({ ...b, [x.k]: true }))} /> : <BrandLogo platform={p} size={34} />}
                   <div className="mx-grow"><b className="mx-trunc">{x.t}</b><small>{shortDate(x.d.slice(0, 10))}{x.d.length > 10 ? ` · ${new Date(x.d).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}` : ""}</small></div>
                 </div>
               ))}
