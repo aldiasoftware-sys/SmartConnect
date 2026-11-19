@@ -5,7 +5,7 @@
 export type TeamMember = { id: "guille" | "millan"; name: string; email: string; owner: string; folder: string; linkedin: string; soloLoSuyo?: boolean };
 
 export const TEAM: TeamMember[] = [
-  { id: "guille", name: "Guille", email: process.env.NEXT_PUBLIC_EMAIL_GUILLE || "", owner: "Guille", folder: "Guille", linkedin: "linkedin_guille" },
+  { id: "guille", name: "Guille", email: process.env.NEXT_PUBLIC_EMAIL_GUILLE || "", owner: "Guille", folder: "Aldia (Guille)", linkedin: "linkedin_guille" },
   { id: "millan", name: "Millán", email: process.env.NEXT_PUBLIC_EMAIL_MILLAN || "", owner: "Millán", folder: "Alejandro", linkedin: "linkedin_millan", soloLoSuyo: true },
 ];
 
