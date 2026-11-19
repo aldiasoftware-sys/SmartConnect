@@ -724,7 +724,7 @@ export default function ReunionesPage() {
                   <button type="button" className="btn-secondary" onClick={() => setIsDrawerOpen(false)}>Cancelar</button>
                   <button type="submit" className="btn-primary" disabled={saving}>
                     <Save size={16} />
-                    {saving ? "Guardando…" : currentReunion?.id ? "Guardar Cambios" : "Crear Reunión"}
+                    {saving ? "Guardando…" : currentReunion?.id ? "Guardar" : "Crear Reunión"}
                   </button>
                 </div>
               </div>
@@ -1213,7 +1213,7 @@ export default function ReunionesPage() {
         }
         .reu-row .form-group { margin-bottom: 0.5rem; }
         .reu-quick { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 1.25rem; justify-content: flex-end; }
-        .reu-origen { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; }
+        .reu-origen { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 0.5rem; }
         .reu-origen label { margin: 0; cursor: pointer; }
         .reu-origen input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
         .reu-origen span {
@@ -1236,7 +1236,9 @@ export default function ReunionesPage() {
         .reu-origen label.tel input:checked + span { border-color: var(--ok); background: var(--ok-soft); color: var(--ok); box-shadow: 0 0 0 1px var(--ok); }
         .reu-origen label.otro input:checked + span { border-color: var(--ink); background: var(--bg-surface); color: var(--ink); box-shadow: 0 0 0 1px var(--ink); }
         .reu-origen input:focus-visible + span { box-shadow: 0 0 0 4px rgba(30, 58, 138, 0.15); }
-        .reu-foot-actions { display: flex; gap: 0.5rem; }
+        .reu-foot-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+        .reu-foot-actions button { padding: 0.6rem 1rem; white-space: nowrap; }
+        .dialog-foot:has(.reu-foot-actions) { flex-wrap: wrap; row-gap: 0.6rem; }
 
         /* ---------- responsive ---------- */
         /* en portátiles (1366) el mes se lleva todo el ancho y la siguiente reunión sube a la cabecera */

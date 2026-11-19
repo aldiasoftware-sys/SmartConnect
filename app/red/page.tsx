@@ -284,7 +284,7 @@ export default function RedPage() {
               .slice(0, 6).map((x) => (
                 <div key={x.k} className="rd-li">
                   {x.img && !badImg[x.k] ? <img src={x.img} alt="" onError={() => setBadImg((b) => ({ ...b, [x.k]: true }))} /> : <BrandLogo platform={p} size={34} />}
-                  <div className="mx-grow"><b className="mx-trunc">{x.t}</b><small>{shortDate(x.d.slice(0, 10))}{x.d.length > 10 ? ` · ${new Date(x.d).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}` : ""}</small></div>
+                  <div className="mx-grow"><b className="mx-trunc">{x.t}</b><small><Cuenta d={x.d} />{" · "}{shortDate(x.d.slice(0, 10))}{x.d.length > 10 ? ` · ${new Date(x.d).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}` : ""}</small></div>
                 </div>
               ))}
             {(p === "youtube" ? programados : thisWeek).length === 0 && <p className="rd-muted">Nada programado.</p>}
@@ -336,4 +336,16 @@ export default function RedPage() {
       )}
     </div>
   );
+}
+
+/** cuenta atrás hasta la hora de publicación («en 2 d 5 h», «en 3 h 12 min», «en 04:32»); se refresca cada segundo */
+function Cuenta({ d }: { d: string }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => { const id = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(id); }, []);
+  const t = new Date(d.length > 10 ? d : `${d}T00:00:00`).getTime() - now;
+  if (t <= 0) return <span className="rd-cd">Publicado</span>;
+  const s = Math.floor(t / 1000), dd = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60), ss = s % 60;
+  const p2 = (n: number) => String(n).padStart(2, "0");
+  const txt = dd > 0 ? `en ${dd} d ${h} h` : h > 0 ? `en ${h} h ${p2(m)} min` : `en ${p2(m)}:${p2(ss)}`;
+  return <span className={`rd-cd${t < 3600e3 ? " soon" : ""}`}>{txt}</span>;
 }
