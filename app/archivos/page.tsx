@@ -6,6 +6,7 @@ import { DIAS, fromISO, shortDate, today } from "@/lib/social";
 import { KEEP_DAYS, PEOPLE, StoredFile, folderLabel, bucketExists, deletesOn, fmtSize, isVideo, listAll, remove, sweep, upload } from "@/lib/files";
 import { FileCard, KitCard, groupKits } from "@/components/ArchivosKit";
 import { CardMenu, Papelera, TrashItem, trashDrag } from "@/components/Papelera";
+import { ComoFunciona } from "@/components/ComoFunciona";
 import { useSocial } from "@/lib/SocialContext";
 import { useScope } from "@/lib/ScopeContext";
 
@@ -189,6 +190,8 @@ export default function ArchivosPage() {
           {inDay.length === 0 && <div className="card empty">Carpeta vacía.</div>}
         </div>
       )}
+
+      {!day && <ComoFunciona carpeta={person} />}
 
       {person && <Papelera dragging={dragging} onDrop={askDelete} />}
     </div>

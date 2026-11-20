@@ -91,7 +91,7 @@ export default function ContenidoPage() {
         <div>
           <div className="eyebrow">Rutina de contenido</div>
           <h2 className="page-title">Contenido</h2>
-          <p className="page-subtitle">Lo que sale cada día en YouTube, Instagram y TikTok: Millán a las 11:00 (desde su PC) y Guille a las 20:30, hora punta (desde su Mac). Se publica solo y aquí ves en qué punto está cada vídeo.</p>
+          <p className="page-subtitle">Lo que sale cada día en YouTube, Instagram y TikTok: Millán a las 11:00 (desde su PC) y Guille a las 17:00 (desde su Mac). Se publica solo y aquí ves en qué punto está cada vídeo.</p>
         </div>
       </div>
 

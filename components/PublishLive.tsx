@@ -1,6 +1,6 @@
 "use client";
 
-// «Publicación de la semana»: un bloque por día (lunes → domingo) y, dentro, cada vídeo en su hora (Millán 11:00, Guille 12:00)
+// «Publicación de la semana»: un bloque por día (lunes → domingo) y, dentro, cada vídeo en su hora (Millán 11:00, Guille 17:00)
 // con el estado en YouTube, Instagram y TikTok. Lo escribe la skill aldia-youtube (app_settings «publicando») mientras trabaja
 // y aquí se relee cada 4 s. TikTok aún va a mano: «Toca subirlo» con un «Hecho».
 import { useEffect, useState } from "react";
@@ -56,7 +56,7 @@ export default function PublishLive({ dark = false }: { dark?: boolean }) {
   const dias = Array.from({ length: 7 }, (_, k) => { const d = new Date(ini); d.setDate(ini.getDate() + k); return d; });
   const hoy = iso(new Date());
   const porDia = (d: Date) => [...videos.values()].filter((v) => iso(new Date(v.hora)) === iso(d)).sort((a, b) => a.hora.localeCompare(b.hora));
-  const TURNOS = [{ hora: "11:00", quien: "millan" }, { hora: "20:30", quien: "guille" }];
+  const TURNOS = [{ hora: "11:00", quien: "millan" }, { hora: "17:00", quien: "guille" }];
   const faltan = (d: Date, vs: ReturnType<typeof porDia>) => (iso(d) < hoy ? [] : TURNOS.filter((t) => !vs.some((v) => v.quien === t.quien && v.redes.youtube)));
   const total = dias.reduce((n, d) => n + porDia(d).length, 0);
   const enCurso = Object.values(raw).filter((i) => i.fase === "subiendo" || i.fase === "procesando").length;
@@ -83,7 +83,7 @@ export default function PublishLive({ dark = false }: { dark?: boolean }) {
       <header className="pw-head">
         <span className={`pw-live ${enCurso ? "busy" : ""}`} />
         <b>Publicación de la semana</b>
-        <small>{enCurso ? "el PC está subiendo ahora mismo" : "Millán 11:00 · Guille 20:30"}</small>
+        <small>{enCurso ? "el PC está subiendo ahora mismo" : "Millán 11:00 · Guille 17:00"}</small>
         <div className="pw-nav">
           <button onClick={() => setSemana(semana - 1)} aria-label="Semana anterior"><ChevronLeft /></button>
           <span>{semana === 0 ? "Esta semana" : `${dias[0].getDate()}–${dias[6].getDate()} ${dias[6].toLocaleDateString("es-ES", { month: "short" })}`}</span>
