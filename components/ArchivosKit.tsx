@@ -1,7 +1,8 @@
 "use client";
 
-import { HTMLAttributes, useEffect, useState } from "react";
-import { Download, Copy, Check, FileText, Film, Image as ImageIcon, File as FileIcon, Clock, FolderOpen, Pencil, X } from "lucide-react";
+import { HTMLAttributes, useEffect, useRef, useState } from "react";
+import Portal from "./Portal";
+import { Download, Copy, Check, FileText, Film, Image as ImageIcon, File as FileIcon, Clock, FolderOpen, Pencil, X, Maximize2, Minimize2 } from "lucide-react";
 import { fromISO, shortDate, today } from "@/lib/social";
 import { Kit, StoredFile, deletesOn, fmtSize, isImage, isText, isVideo, readText, signedUrl, writeText } from "@/lib/files";
 import { BrandLogo } from "./AccountIcon";
@@ -124,6 +125,17 @@ export function KitCard({ kit, onDelete, drag }: { kit: Kit; onDelete: () => voi
   const [tt, setTt] = useState<string | null>(null);
   const [ig, setIg] = useState<string | null>(null);
   const [ruta, setRuta] = useState<string | null>(null);
+  const [big, setBig] = useState(false);   // vídeo/miniatura en grande (Esc, el fondo o el botón lo vuelven a su sitio)
+  const small = useRef<HTMLVideoElement>(null), large = useRef<HTMLVideoElement>(null);
+  // el vídeo sigue por donde iba al maximizar y al minimizar
+  const abrir = () => { const v = small.current; const t = v?.currentTime || 0, play = v ? !v.paused : false; v?.pause(); setBig(true);
+    requestAnimationFrame(() => { const g = large.current; if (g) { g.currentTime = t; if (play) g.play().catch(() => {}); } }); };
+  const cerrar = () => { const g = large.current, v = small.current; if (g && v) { v.currentTime = g.currentTime; if (!g.paused) v.play().catch(() => {}); } setBig(false); };
+  useEffect(() => {
+    if (!big) return;
+    const k = (e: KeyboardEvent) => { if (e.key === "Escape") cerrar(); };
+    window.addEventListener("keydown", k); return () => window.removeEventListener("keydown", k);
+  }, [big]);
 
   useEffect(() => {
     if (kit.ruta) readText(kit.ruta.path).then((t) => setRuta(t.trim() || null)).catch(() => setRuta(null));
@@ -138,9 +150,21 @@ export function KitCard({ kit, onDelete, drag }: { kit: Kit; onDelete: () => voi
   return (
     <div className="kit" {...drag}>
       <div className="kit-media">
+        {big && media && urls[media.path] && (
+          <Portal>
+            <div className="kit-backdrop" onClick={cerrar} />
+            <div className="kit-frame big">
+              <button type="button" className="kit-max" onClick={cerrar} title="Minimizar (Esc)" aria-label="Minimizar"><Minimize2 /></button>
+              {tab === "video" ? <video ref={large} src={urls[media.path]} controls preload="auto" /> : <img src={urls[media.path]} alt="Miniatura de LinkedIn" />}
+            </div>
+          </Portal>
+        )}
         <div className="kit-frame">
+          {media && urls[media.path] && (
+            <button type="button" className="kit-max" onClick={abrir} title="Maximizar" aria-label="Maximizar"><Maximize2 /></button>
+          )}
           {media && urls[media.path] ? (tab === "video"
-            ? <video key={media.path} src={urls[media.path]} controls preload="metadata" />
+            ? <video ref={small} key={media.path} src={urls[media.path]} controls preload="metadata" />
             : <img src={urls[media.path]} alt="Miniatura de LinkedIn" />)
             : <div className="kit-empty">{tab === "video" ? <Film /> : <ImageIcon />}</div>}
         </div>

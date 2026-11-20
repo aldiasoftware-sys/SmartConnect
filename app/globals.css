@@ -2053,3 +2053,15 @@ a.pw-chip:hover { filter: brightness(.96); }
 /* cuenta atrás de los próximos Shorts */
 .rd-cd { display: inline-flex; align-items: center; gap: 4px; font-variant-numeric: tabular-nums; font-weight: 600; color: var(--ink); }
 .rd-cd.soon { color: #e5484d; }
+
+/* vídeo de Archivos: maximizar / minimizar */
+.kit-frame { position: relative; }
+.kit-max { position: absolute; top: 8px; right: 8px; z-index: 2; width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center;
+  background: rgba(10, 14, 24, .55); color: #fff; border: 1px solid rgba(255,255,255,.18); backdrop-filter: blur(6px); cursor: pointer; transition: background .15s, transform .15s; }
+.kit-max:hover { background: rgba(10, 14, 24, .8); transform: scale(1.05); }
+.kit-max svg { width: 16px; height: 16px; }
+.kit-backdrop { position: fixed; inset: 0; z-index: 90; background: rgba(6, 10, 20, .78); backdrop-filter: blur(4px); animation: kitFade .18s ease; }
+.kit-frame.big { position: fixed; z-index: 91; top: 50%; left: 50%; transform: translate(-50%, -50%); width: auto; height: min(92vh, 1100px); max-height: none;
+  aspect-ratio: 9 / 16; max-width: 94vw; border-radius: 18px; box-shadow: 0 30px 80px -20px rgba(0,0,0,.6); animation: kitPop .2s cubic-bezier(.2,.8,.2,1); }
+@keyframes kitFade { from { opacity: 0; } }
+@keyframes kitPop { from { opacity: 0; transform: translate(-50%, -48%) scale(.96); } }
