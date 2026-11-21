@@ -11,7 +11,7 @@ const GUIAS: Record<string, Guia> = {
     titulo: "Guille · desde su Mac, a las 17:00",
     carpeta: "Aldia (Guille)",
     pasos: [
-      "El Mac hace un vídeo al día con 4 días de antelación: empieza a las 7:00, renderiza en 4K (unas 5 h) y lo deja aquí, en la carpeta del día en que se publica.",
+      "El Mac hace un vídeo al día con 4 días de antelación (unas 2–2,5 h cada uno) y lo deja aquí, en la carpeta del día en que se publica. Mientras lo hace, esa carpeta ya aparece con «Creando vídeo» y el paso en el que va.",
       "En cuanto llega, el Mac lo programa en YouTube para las 17:00 de ese día y a esa hora publica el Reel de Instagram. Si el Mac está dormido, sale al despertarlo.",
       "TikTok, a mano: el máster 4K está en Películas › TikTok 4K y el título en «… - TikTok titulo.txt». Cuando lo subas, pulsa «Hecho» en Contenido.",
       "Cuando ya está en YouTube e Instagram (y TikTok marcado «Hecho», o han pasado 7 días), se borra solo de aquí para liberar espacio.",

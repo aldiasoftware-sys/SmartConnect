@@ -2065,3 +2065,10 @@ a.pw-chip:hover { filter: brightness(.96); }
   aspect-ratio: 9 / 16; max-width: 94vw; border-radius: 18px; box-shadow: 0 30px 80px -20px rgba(0,0,0,.6); animation: kitPop .2s cubic-bezier(.2,.8,.2,1); }
 @keyframes kitFade { from { opacity: 0; } }
 @keyframes kitPop { from { opacity: 0; transform: translate(-50%, -48%) scale(.96); } }
+
+/* «Creando vídeo» en Archivos (21-11-2026) */
+.creando-spin { animation: creandoSpin 1.1s linear infinite; }
+@keyframes creandoSpin { to { transform: rotate(360deg); } }
+.creando-pulso { animation: creandoPulso 1.6s ease-in-out infinite; }
+@keyframes creandoPulso { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+@media (prefers-reduced-motion: reduce) { .creando-spin, .creando-pulso { animation: none; } }

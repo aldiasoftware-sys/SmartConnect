@@ -141,6 +141,7 @@ export type Kit = { name: string; video?: StoredFile; thumb?: StoredFile; linked
 export function groupKits(files: StoredFile[]) {
   const kits = new Map<string, Kit>(); const loose: StoredFile[] = [];
   for (const f of files) {
+    if (isStatus(f)) continue;   // «_creando.json»: no es un archivo, es el aviso de vídeo en marcha
     const m = f.name.match(/^(.*) - (video\.\w+|miniatura LinkedIn\.\w+|LinkedIn titulo y descripcion\.txt|TikTok titulo\.txt|Instagram descripcion\.txt|ruta 4K\.txt)$/i);
     if (!m) { loose.push(f); continue; }
     const k = kits.get(m[1]) || { name: m[1], files: [] }; kits.set(m[1], k); k.files.push(f);
@@ -150,4 +151,13 @@ export function groupKits(files: StoredFile[]) {
     else if (part.startsWith("linkedin")) k.linkedin = f; else if (part.startsWith("instagram")) k.instagram = f; else k.tiktok = f;
   }
   return { kits: Array.from(kits.values()).sort((a, b) => a.name.localeCompare(b.name)), loose };
+}
+
+/** «_creando.json»: el Mac de Guille lo deja en la carpeta del día mientras hace ese vídeo (fase n de 6) y lo quita al subirlo (21-11-2026). */
+export const STATUS_FILE = "_creando.json";
+export const isStatus = (f: StoredFile) => f.name === STATUS_FILE;
+export type Creando = { fecha: string; texto: string; titulo?: string; paso?: number; pasos?: number; fase?: string; desde?: string; inicio?: string; actualizado: string; error?: string | null };
+export async function readStatus(path: string): Promise<Creando | null> {
+  try { const { data, error } = await store().download(path, { cacheNonce: Date.now() } as any); if (error || !data) return null; return JSON.parse(await data.text()); }
+  catch { return null; }
 }

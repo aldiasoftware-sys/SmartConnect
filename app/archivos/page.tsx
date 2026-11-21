@@ -3,7 +3,8 @@
 import { DragEvent, useEffect, useRef, useState } from "react";
 import { Folder, FolderOpen, ChevronRight, Upload, Trash2, Clock, HardDrive, RefreshCw, Film } from "lucide-react";
 import { DIAS, fromISO, shortDate, today } from "@/lib/social";
-import { KEEP_DAYS, PEOPLE, StoredFile, folderLabel, bucketExists, deletesOn, fmtSize, isVideo, listAll, remove, sweep, upload } from "@/lib/files";
+import { Creando, KEEP_DAYS, PEOPLE, StoredFile, folderLabel, bucketExists, deletesOn, fmtSize, isStatus, isVideo, listAll, readStatus, remove, sweep, upload } from "@/lib/files";
+import { CreandoCard, CreandoChip } from "@/components/Creando";
 import { FileCard, KitCard, groupKits } from "@/components/ArchivosKit";
 import { CardMenu, Papelera, TrashItem, trashDrag } from "@/components/Papelera";
 import { ComoFunciona } from "@/components/ComoFunciona";
@@ -48,6 +49,23 @@ export default function ArchivosPage() {
     setLoading(false);
   }
   useEffect(() => { load(true); }, []);
+
+  // «Creando vídeo»: _creando.json que deja el Mac en la carpeta del día mientras hace ese vídeo; se relee cada minuto mientras haya alguno
+  const [creando, setCreando] = useState<Record<string, Creando>>({});
+  const statusPaths = files.filter(isStatus).map((f) => f.path).sort().join("|");
+  useEffect(() => {
+    const paths = statusPaths ? statusPaths.split("|") : [];
+    if (!paths.length) { setCreando({}); return; }
+    let vivo = true;
+    const leer = async () => {
+      const out: Record<string, Creando> = {};
+      for (const p of paths) { const c = await readStatus(p); if (c) out[p.split("/").slice(0, 2).join("/")] = c; }
+      if (vivo) setCreando(out);
+    };
+    leer();
+    const t = setInterval(async () => { await leer(); const all = await listAll().catch(() => null); if (vivo && all && all.filter(isStatus).map((f) => f.path).sort().join("|") !== statusPaths) setFiles(all); }, 60000);
+    return () => { vivo = false; clearInterval(t); };
+  }, [statusPaths]);
 
   // desde el Calendario: ?abrir=persona/fecha/pieza → esa carpeta, ese día y ese vídeo resaltado
   const [destacado, setDestacado] = useState<string | null>(null);
@@ -131,6 +149,7 @@ export default function ArchivosPage() {
                     {mine.length ? `${groupKits(mine).kits.length} ${groupKits(mine).kits.length === 1 ? "vídeo" : "vídeos"} · ${fmtSize(mine.reduce((s, f) => s + f.size, 0))}` : "Vacío"}
                     {last ? ` · último ${dayLabel(last)}` : ""}
                   </div>
+                  {Object.entries(creando).filter(([k]) => k.startsWith(p + "/")).slice(0, 1).map(([k, c]) => <div key={k} style={{ marginTop: 8 }}><CreandoChip c={c} /></div>)}
                 </div>
                 <ChevronRight style={{ width: 18, height: 18, marginLeft: "auto", color: "var(--text-muted)" }} />
               </button>
@@ -162,9 +181,10 @@ export default function ArchivosPage() {
                   </div>
                   <div className="day-big">{fromISO(d).getDate()} <span>{shortDate(d).split(" ")[1]}</span></div>
                   <div className="section-sub" style={{ textTransform: "capitalize" }}>{dayLabel(d).split(" ")[0]}</div>
-                  <div className="flex items-center gap-2 text-sm" style={{ marginTop: 10, color: "var(--text-secondary)" }}>
+                  {(groupKits(fs).kits.length > 0 || !creando[`${person}/${d}`]) && <div className="flex items-center gap-2 text-sm" style={{ marginTop: 10, color: "var(--text-secondary)" }}>
                     <Film style={{ width: 14, height: 14 }} /> {groupKits(fs).kits.length} {groupKits(fs).kits.length === 1 ? "vídeo" : "vídeos"}{groupKits(fs).loose.length ? ` · ${groupKits(fs).loose.length} sueltos` : ""}
-                  </div>
+                  </div>}
+                  {creando[`${person}/${d}`] && <div style={{ marginTop: 10 }}><CreandoChip c={creando[`${person}/${d}`]} /></div>}
                 </div>
               );
             })}
@@ -172,6 +192,7 @@ export default function ArchivosPage() {
         )
       ) : (
         <div className="flex flex-col gap-4">
+          {creando[`${person}/${day}`] && <CreandoCard c={creando[`${person}/${day}`]} />}
           {groupKits(inDay).kits.map((k) => {
             const item = { paths: k.files.map((f) => f.path), label: `«${k.name}» y sus ${k.files.length} archivos` };
             return <div key={k.name} id={`kit-${k.name}`} className={destacado === k.name ? "kit-destacado" : ""}><KitCard kit={k} onDelete={() => askDelete(item)} drag={dragTo(item)} /></div>;
@@ -187,7 +208,7 @@ export default function ArchivosPage() {
               </div>
             </>
           )}
-          {inDay.length === 0 && <div className="card empty">Carpeta vacía.</div>}
+          {inDay.filter((f) => !isStatus(f)).length === 0 && !creando[`${person}/${day}`] && <div className="card empty">Carpeta vacía.</div>}
         </div>
       )}
 
