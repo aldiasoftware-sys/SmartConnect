@@ -14,7 +14,7 @@ const BUCKET = "contenido";
 const VIDEO_PLATFORMS = ["tiktok", "instagram"];
 /** Va a las cuentas de ALDIA todo lo que no es de Guille (mismo criterio que isAccountPost en lib/social.ts). */
 const isAldia = (p: Row) => p.owner !== "Guille";
-const BTN: Record<string, { label: string; emoji: string }> = {
+export const BTN: Record<string, { label: string; emoji: string }> = {
   tiktok: { label: "Ver en TikTok", emoji: "🎵" },
   instagram: { label: "Ver en Instagram", emoji: "📸" },
 };
@@ -87,7 +87,7 @@ async function videoCard(ctx: Ctx, post: Row): Promise<string | null> {
   return msg.id;
 }
 
-type Info = { headline: string; hook: string; summary: string; question: string };
+export type Info = { headline: string; hook: string; summary: string; question: string };
 
 /** Del pie de Instagram (gancho · detalle · pregunta · Discord · hashtags) saca lo que va en la tarjeta. */
 export function parseCaption(text: string, title: string): Info {
@@ -112,7 +112,7 @@ function clip(s: string, max: number) {
   return end > max * 0.4 ? cut.slice(0, end + 1) : cut.replace(/\s+\S*$/, "") + "…";
 }
 
-function cardBody(info: Info, links: { platform: string; url: string }[], thumb: boolean) {
+export function cardBody(info: Info, links: { platform: string; url: string }[], thumb: boolean) {
   const head = { type: 10, content: `-# 🎬 NUEVO VÍDEO DE ALDIA\n## ${info.headline}\n${info.hook !== info.headline ? info.hook : ""}`.trim() };
   const comps: any[] = [thumb ? { type: 9, components: [head], accessory: { type: 11, media: { url: "attachment://miniatura.png" } } } : head];
   if (info.summary) comps.push({ type: 10, content: info.summary });
