@@ -185,8 +185,10 @@ export default function RedPage() {
   const ttVids = [...(tts?.videos || [])].sort((a, b) => (b.publicado || "").localeCompare(a.publicado || ""));
   const ttBest = [...ttVids].sort((a, b) => b.vistas - a.vistas)[0];
   const ttSum = (k: "vistas" | "likes" | "comentarios" | "compartidos" | "guardados") => ttVids.reduce((a, v) => a + (v[k] || 0), 0);
-  const ttHist = Object.entries(tts?.historial || {}).sort(([a], [b]) => a.localeCompare(b));
-  const ttDias = ttHist.map(([d, v], i) => ({ day: d, vistas: i && v.vistas != null && ttHist[i - 1][1].vistas != null ? Math.max(0, v.vistas - (ttHist[i - 1][1].vistas || 0)) : 0 })).slice(1).filter((d) => d.day >= from);
+  const ttHist = Object.entries(tts?.historial || {}).filter(([, v]) => v.vistas != null).sort(([a], [b]) => a.localeCompare(b));
+  const ttDias = ttHist.map(([d, v], i) => ({ day: d, vistas: i ? Math.max(0, (v.vistas || 0) - (ttHist[i - 1][1].vistas || 0)) : 0 })).slice(1).filter((d) => d.day >= from);
+  // mientras no haya dos días de lecturas: vistas de cada vídeo por fecha de publicación (ya hay datos desde el primer día)
+  const ttPorVideo = [...ttVids].filter((v) => (v.publicado || "").slice(0, 10) >= from).reverse();
 
   // ---------- publicaciones del calendario ----------
   const mine = posts.filter((x) => x.platform === p && x.publish_date);
@@ -297,13 +299,14 @@ export default function RedPage() {
 
       <div className="rd-grid">
         <section className="rd-card">
-          <h3>{p === "youtube" ? "Visualizaciones por día" : p === "instagram" && igDias.length ? "Alcance por día" : p === "tiktok" && ttDias.length ? "Visualizaciones por día" : "Publicado por semana"}</h3>
-          <p className="rd-muted">{p === "youtube" ? "Vistas casi en directo (cada 10 min); minutos y me gusta llegan con 1-2 días de retraso." : p === "instagram" && igDias.length ? "Cuentas alcanzadas cada día (Instagram)." : p === "tiktok" && ttDias.length ? "Vistas nuevas cada día (suma de todos los vídeos)." : `Objetivo: ${target} a la semana.`}</p>
+          <h3>{p === "youtube" ? "Visualizaciones por día" : p === "instagram" && igDias.length ? "Alcance por día" : p === "tiktok" && ttDias.length ? "Visualizaciones por día" : p === "tiktok" && ttPorVideo.length ? "Visualizaciones de cada vídeo" : "Publicado por semana"}</h3>
+          <p className="rd-muted">{p === "youtube" ? "Vistas casi en directo (cada 10 min); minutos y me gusta llegan con 1-2 días de retraso." : p === "instagram" && igDias.length ? "Cuentas alcanzadas cada día (Instagram)." : p === "tiktok" && ttDias.length ? "Vistas nuevas cada día (suma de todos los vídeos)." : p === "tiktok" && ttPorVideo.length ? "Por fecha de publicación. Desde mañana, vistas nuevas de cada día." : `Objetivo: ${target} a la semana.`}</p>
           {p === "youtube"
             ? (dias.length ? <ColumnChart data={dias.map((d) => ({ key: d.day, label: dayLbl(d.day), value: d.views, tip: `${dayLbl(d.day)} · ${fmt(d.views)} vistas · +${d.subscribersGained} subs` }))} highlight={dias[dias.length - 1]?.day} color={T.accent} height={220} />
               : <div className="rd-empty sm"><span>Aún sin analítica: activa la YouTube Analytics API.</span></div>)
             : p === "instagram" && igDias.length ? <ColumnChart data={igDias.map((d) => ({ key: d.day, label: dayLbl(d.day), value: d.reach || 0, tip: `${dayLbl(d.day)} · ${fmt(d.reach || 0)} de alcance${d.views ? ` · ${fmt(d.views)} vistas` : ""}` }))} highlight={igDias[igDias.length - 1]?.day} color={T.accent} height={220} />
             : p === "tiktok" && ttDias.length ? <ColumnChart data={ttDias.map((d) => ({ key: d.day, label: dayLbl(d.day), value: d.vistas, tip: `${dayLbl(d.day)} · ${fmt(d.vistas)} vistas` }))} highlight={ttDias[ttDias.length - 1]?.day} color={T.accent} height={220} />
+            : p === "tiktok" && ttPorVideo.length ? <ColumnChart data={ttPorVideo.map((v) => ({ key: v.id, label: dayLbl((v.publicado || "").slice(0, 10)), value: v.vistas, tip: `${v.titulo.slice(0, 60)} · ${fmt(v.vistas)} vistas` }))} highlight={ttBest?.id} color={T.accent} height={220} />
             : <ColumnChart data={perWeek} highlight={weeks[weeks.length - 1]} color={T.accent} height={220} />}
         </section>
 
