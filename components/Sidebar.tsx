@@ -6,7 +6,7 @@ import { useAsistencia } from "@/lib/asistencia";
 import { usePathname } from "next/navigation";
 import {
   CalendarRange, Users, Inbox, Briefcase, Video, CircleDollarSign, LineChart,
-  FolderKanban, UserCog, CalendarDays, KeySquare, FolderOpen, Mail, Puzzle, Target,
+  FolderKanban, UserCog, CalendarDays, KeySquare, FolderOpen, Puzzle, Target,
 } from "lucide-react";
 
 /** Logos reales de Discord y YouTube para el menú (mismo tamaño que los iconos). */
@@ -28,7 +28,6 @@ export const NAV_SECTIONS = [
   ] },
   { title: "Comunidad", items: [
     { name: "Comunidad", href: "/comunidad", icon: Users },
-    { name: "Newsletter", href: "/newsletter", icon: Mail },
     { name: "Discord", href: "/discord", icon: DiscordLogo },
     { name: "Mensajes web", href: "/clientes", icon: Inbox },
   ] },

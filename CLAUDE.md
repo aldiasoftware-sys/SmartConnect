@@ -67,7 +67,7 @@ Prioridad: 1) Contenido · 2) CRM · 3) Cuadro semanal y metas · 4) Registro de
 
 ## Newsletter «ALDIA Intelligence» (06-11, decidido: propia con Resend)
 - Tablas: `newsletter_setup.sql` (newsletter_subscribers, newsletter_editions, newsletter_sends) + volver a ejecutar `seguridad_rls.sql`.
-- Panel `/newsletter` (menú Comunidad): ediciones con vista previa en vivo, prueba al propio email, envío con reanudación; suscriptores (CSV, baja, borrar, invitar desde Comunidad); pestaña Captar (enlaces `?src=` y formulario HTML para aldiaproject.es).
+- **Quitada del menú Comunidad el 25-11** (borrado el panel `/newsletter`; siguen la página pública `/n`, las funciones y las tablas). Estaba así: panel `/newsletter`: ediciones con vista previa en vivo, prueba al propio email, envío con reanudación; suscriptores (CSV, baja, borrar, invitar desde Comunidad); pestaña Captar (enlaces `?src=` y formulario HTML para aldiaproject.es).
 - Público `/n`: alta con doble confirmación (`?src=PALABRA` guarda el origen), `?estado=…` y baja `?baja=<token>`.
 - Funciones: `/api/newsletter/subscribe` (POST JSON o formulario), `confirm` (GET), `baja` (GET → /n; POST da de baja, también one-click RFC 8058), `send` (POST, solo equipo con su JWT; 10×100 por llamada), `estado` (GET, solo equipo).
 - Plantilla del correo en `lib/newsletter.ts` (la comparten vista previa y envío). Bloques: noticia (con fuente), automatización, herramienta, caso, recurso, nota; un solo CTA (diagnóstico gratis).
