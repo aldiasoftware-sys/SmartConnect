@@ -75,7 +75,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="es">
       <head>
         <title>Aldia Smart Connect</title>
-        <link rel="icon" href="/aldia-mark.png" />
+        {/* favicon de comunidad (27-11): tres personas, la del centro en el verde de Aldia */}
+        <link rel="icon" type="image/svg+xml" href="/icono-comunidad.svg" />
+        <link rel="icon" type="image/png" sizes="32x32" href="/icono-comunidad-32.png" />
+        <link rel="apple-touch-icon" href="/icono-comunidad-512.png" />
       </head>
       <body className="app-container">
         <AuthProvider>

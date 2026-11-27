@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Comunidad: tres personas juntas (la del centro, en el verde de Aldia) sobre baldosa negra -->
+  <rect width="64" height="64" rx="16" fill="#0a0a0a"/>
+  <g fill="#ffffff" opacity="0.55">
+    <circle cx="17" cy="25" r="6.5"/>
+    <path d="M5 50c0-8 5.4-13.5 12-13.5S29 42 29 50z"/>
+    <circle cx="47" cy="25" r="6.5"/>
+    <path d="M35 50c0-8 5.4-13.5 12-13.5S59 42 59 50z"/>
+  </g>
+  <g fill="#00FF88" stroke="#0a0a0a" stroke-width="3">
+    <circle cx="32" cy="21" r="8.5"/>
+    <path d="M16.5 53c0-10.5 7-17.5 15.5-17.5S47.5 42.5 47.5 53z"/>
+  </g>
+</svg>
