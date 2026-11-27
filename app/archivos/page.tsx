@@ -3,7 +3,7 @@
 import { DragEvent, useEffect, useRef, useState } from "react";
 import { Folder, FolderOpen, ChevronRight, Upload, Trash2, Clock, HardDrive, RefreshCw, Film } from "lucide-react";
 import { DIAS, fromISO, shortDate, today } from "@/lib/social";
-import { Creando, KEEP_DAYS, PEOPLE, StoredFile, folderLabel, bucketExists, deletesOn, fmtSize, isStatus, isVideo, listAll, readStatus, remove, sweep, upload } from "@/lib/files";
+import { Creando, KEEP_DAYS, PEOPLE, StoredFile, folderLabel, bucketExists, cachedList, deletesOn, fmtSize, isStatus, isVideo, listAll, memoryList, readStatus, remove, sweep, upload } from "@/lib/files";
 import { CreandoCard, CreandoChip } from "@/components/Creando";
 import { FileCard, KitCard, groupKits } from "@/components/ArchivosKit";
 import { CardMenu, Papelera, TrashItem, trashDrag } from "@/components/Papelera";
@@ -14,8 +14,9 @@ import { useScope } from "@/lib/ScopeContext";
 const dayLabel = (d: string) => `${DIAS[(fromISO(d).getDay() + 6) % 7]} ${shortDate(d)}`;
 
 export default function ArchivosPage() {
-  const [files, setFiles] = useState<StoredFile[]>([]);
-  const [loading, setLoading] = useState(true);
+  // se pinta al instante con la última lista conocida y se pone al día por detrás
+  const [files, setFiles] = useState<StoredFile[]>(() => memoryList() || []);
+  const [loading, setLoading] = useState(() => !memoryList());
   const [error, setError] = useState("");
   const [swept, setSwept] = useState(0);
   const [person, setPerson] = useState<string | null>(null);
@@ -38,17 +39,24 @@ export default function ArchivosPage() {
   async function load(doSweep = false) {
     setLoading(true); setError("");
     try {
-      if (!(await bucketExists())) { setError("missing"); setFiles([]); setLoading(false); return; }
-      let all = await listAll();
-      if (doSweep) { const n = await sweep(all); if (n) { setSwept(n); all = await listAll(); } }
+      // la lista y la comprobación del espacio van a la vez; el barrido de lo caducado, después y sin hacer esperar
+      const [exists, all] = await Promise.all([bucketExists(), listAll()]);
+      if (!exists) { setError("missing"); setFiles([]); setLoading(false); return; }
       setFiles(all);
+      setLoading(false);
       refresh();
+      if (doSweep) sweep(all).then(async (n) => { if (n) { setSwept(n); setFiles(await listAll()); } }).catch(() => {});
+      return;
     } catch (e: any) {
       setError(e?.message?.includes("not found") || e?.statusCode === "404" ? "missing" : e?.message || "No se han podido leer los archivos.");
     }
     setLoading(false);
   }
-  useEffect(() => { load(true); }, []);
+  useEffect(() => {
+    const c = cachedList();   // al abrir la app directamente en Archivos: lo guardado en el navegador
+    if (c && !files.length) { setFiles(c); setLoading(false); }
+    load(true);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // «Creando vídeo»: _creando.json que deja el Mac en la carpeta del día mientras hace ese vídeo; se relee cada minuto mientras haya alguno
   const [creando, setCreando] = useState<Record<string, Creando>>({});

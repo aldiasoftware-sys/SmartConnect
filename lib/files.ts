@@ -41,23 +41,39 @@ export async function bucketExists() {
 }
 
 /** Todos los archivos (persona / fecha / archivo). Las carpetas que empiezan por «.» son internas y no salen. */
+// Las carpetas se leen todas a la vez (antes, una detrás de otra: decenas de viajes seguidos a Supabase).
 export async function listAll(): Promise<StoredFile[]> {
-  const out: StoredFile[] = [];
-  for (const person of await listDir("")) {
-    if (person.id || person.name.startsWith(".")) continue; // solo carpetas de persona
-    for (const day of await listDir(person.name)) {
-      if (day.id) continue;
-      for (const f of await listDir(`${person.name}/${day.name}`)) {
-        if (!f.id || f.name === ".emptyFolderPlaceholder") continue;
-        out.push({
-          path: `${person.name}/${day.name}/${f.name}`, name: f.name, person: person.name, date: day.name,
-          size: Number((f.metadata as any)?.size || 0), mime: String((f.metadata as any)?.mimetype || ""), created: f.created_at || new Date().toISOString(),
-        });
-      }
-    }
-  }
+  const persons = (await listDir("")).filter((p) => !p.id && !p.name.startsWith("."));   // solo carpetas de persona
+  const days = (await Promise.all(persons.map(async (p) => (await listDir(p.name)).filter((d) => !d.id).map((d) => ({ person: p.name, day: d.name }))))).flat();
+  const lists = await Promise.all(days.map(async ({ person, day }) => (await listDir(`${person}/${day}`))
+    .filter((f) => f.id && f.name !== ".emptyFolderPlaceholder")
+    .map((f): StoredFile => ({
+      path: `${person}/${day}/${f.name}`, name: f.name, person, date: day,
+      size: Number((f.metadata as any)?.size || 0), mime: String((f.metadata as any)?.mimetype || ""), created: f.created_at || new Date().toISOString(),
+    }))));
+  const out = lists.flat();
+  // si un archivo se ha vuelto a subir (otra fecha de subida), fuera su texto y su enlace guardados
+  for (const f of out) { const prev = seen.get(f.path); if (prev && prev !== f.created) { textCache.delete(f.path); urlCache.delete(f.path); } seen.set(f.path, f.created); }
+  saveCache(out);
   return out;
 }
+const seen = new Map<string, string>();
+
+// Copia de la última lista (en memoria y en el navegador) para que Archivos se pinte al instante y luego se ponga al día.
+const CACHE_KEY = "sc-archivos-lista";
+let memList: StoredFile[] | null = null;
+function saveCache(list: StoredFile[]) {
+  memList = list;
+  try { localStorage.setItem(CACHE_KEY, JSON.stringify(list)); } catch { /* sin sitio o sin localStorage */ }
+}
+/** La última lista conocida (null si nunca se ha cargado en este navegador). */
+export function cachedList(): StoredFile[] | null {
+  if (memList) return memList;
+  try { const s = localStorage.getItem(CACHE_KEY); if (s) memList = JSON.parse(s); } catch { /* nada */ }
+  return memList;
+}
+/** Solo lo que ya está en memoria (sirve durante el primer pintado sin descuadrar la página). */
+export const memoryList = () => memList;
 
 /** Barrido: borra lo que ya ha cumplido sus 8 días y las carpetas de fecha que se quedan vacías. Devuelve cuántos archivos ha borrado. */
 export async function sweep(files?: StoredFile[]) {
@@ -109,9 +125,14 @@ export async function pruneDiscarded(set: Set<string>, alive: Set<string>) {
   if (old.length) await remove(old);
 }
 
+// Enlaces de vista previa (valen 1 h): se reutilizan 50 min, así volver a una carpeta no los pide otra vez.
+const urlCache = new Map<string, { url: string; until: number }>();
 export async function signedUrl(path: string, download = false) {
+  const hit = !download && urlCache.get(path);
+  if (hit && hit.until > Date.now()) return hit.url;
   const { data, error } = await store().createSignedUrl(path, 3600, download ? { download: path.split("/").pop() } : undefined);
   if (error) throw error;
+  if (!download) urlCache.set(path, { url: data.signedUrl, until: Date.now() + 50 * 60000 });
   return data.signedUrl;
 }
 
@@ -119,12 +140,19 @@ export async function signedUrl(path: string, download = false) {
 export async function writeText(path: string, text: string) {
   const { error } = await store().upload(path, new Blob([text], { type: "text/plain;charset=utf-8" }), { upsert: true, contentType: "text/plain;charset=utf-8" });
   if (error) throw error;
+  textCache.set(path, text);
 }
 
+// Textos ya leídos (títulos y descripciones), para no descargarlos cada vez que se abre la carpeta.
+const textCache = new Map<string, string>();
 export async function readText(path: string) {
+  const hit = textCache.get(path);
+  if (hit !== undefined && !path.endsWith(".json")) return hit;   // los _creando.json cambian solos: esos se leen siempre
   const { data, error } = await store().download(path);
   if (error) throw error;
-  return await data.text();
+  const t = await data.text();
+  textCache.set(path, t);
+  return t;
 }
 
 export const isText = (f: StoredFile) => f.mime.startsWith("text/") || /\.(txt|md|json)$/i.test(f.name);

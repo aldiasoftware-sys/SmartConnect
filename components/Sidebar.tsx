@@ -5,7 +5,7 @@ import { BrandLogo } from "@/components/AccountIcon";
 import { useAsistencia } from "@/lib/asistencia";
 import { usePathname } from "next/navigation";
 import {
-  CalendarRange, Users, Inbox, Briefcase, Video, CircleDollarSign, LineChart,
+  CalendarRange, Inbox, Briefcase, Video, CircleDollarSign, LineChart,
   FolderKanban, UserCog, CalendarDays, KeySquare, FolderOpen, Puzzle, Target,
 } from "lucide-react";
 
@@ -27,7 +27,6 @@ export const NAV_SECTIONS = [
     { name: "Redes", href: "/red?p=youtube", icon: RedesLogos },
   ] },
   { title: "Comunidad", items: [
-    { name: "Comunidad", href: "/comunidad", icon: Users },
     { name: "Discord", href: "/discord", icon: DiscordLogo },
     { name: "Mensajes web", href: "/clientes", icon: Inbox },
   ] },
